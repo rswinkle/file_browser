@@ -1,0 +1,45 @@
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.a
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.pyc
+*.deb
+sdl_img
+lua-5.4.6/src/lua
+lua-5.4.6/src/luac
+
+#ignore ~ files
+*~
+*.ppm
+*.gif
+*.jpg
+*.png
+*.tar
+*.kate-swp
+CMakeFiles/*
+CMakeCache.txt
+stats/*
+build/*
+!build/Makefile
+!build/*.make
+*.swp
+tags
+scratch/*
+
+
+fb_test
+nuklear_fb_test
+
