@@ -30,6 +30,9 @@
 //     foo_1.jpg
 //     food.jpg
 
+// maybe I should just live with "long" and prosper...
+#include "myinttypes.h"
+
 // use upper, not lower, to get better sorting versus '_'
 // no, use lower not upper, to get sorting that matches explorer
 extern inline char tupper(char b)

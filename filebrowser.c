@@ -1,11 +1,9 @@
-#include "myinttypes.h"
 
-#define CVECTOR_IMPLEMENTATION
-#define CVEC_ONLY_INT
-#define CVEC_ONLY_STR
-#define CVEC_SIZE_T i64
-#define PRIcv_sz PRIiMAX
-#include "cvector.h"
+// pulls in file and cvector
+#include "filebrowser.h"
+
+#include <stdio.h>
+#include <ctype.h>
 
 //POSIX (mostly) works with MinGW64
 #include <sys/stat.h>
@@ -103,7 +101,7 @@ void handle_recents(file_browser* fb)
 	fb->is_recents = TRUE;
 	fb->dir[0] = 0;
 	cvec_clear_file(&fb->files);
-	g->selection = 0;
+	fb->selection = 0;
 
 	const char** exts = fb->exts;
 	const int num_exts = fb->num_exts;
@@ -150,9 +148,9 @@ void handle_recents(file_browser* fb)
 	}
 
 	qsort(fb->files.a, fb->files.size, sizeof(file), fb->c_func);
-	g->list_setscroll = SDL_TRUE;
+	fb->list_setscroll = TRUE;
 
-	printf("Found %"PRIcv_sz" recent files\n", fb->files.size);
+	FB_LOG("Found %"PRIcv_sz" recent files\n", fb->files.size);
 
 	cvec_free_str(&recents);
 }
@@ -164,7 +162,7 @@ void search_filenames(file_browser* fb)
 	char* text = fb->text_buf;
 	text[fb->text_len] = 0;
 	
-	SDL_Log("Final text = \"%s\"\n", text);
+	FB_LOG("Final text = \"%s\"\n", text);
 
 	// strcasestr is causing problems on windows
 	// so just convert to lower before using strstr
@@ -193,11 +191,11 @@ void search_filenames(file_browser* fb)
 
 		// searching name since I'm showing names not paths in the list
 		if (strstr(lowername, lowertext)) {
-			SDL_Log("Adding %s\n", files->a[i].path);
+			FB_LOG("Adding %s\n", files->a[i].path);
 			cvec_push_i(&fb->search_results, i);
 		}
 	}
-	SDL_Log("found %d matches\n", (int)fb->search_results.size);
+	FB_LOG("found %d matches\n", (int)fb->search_results.size);
 }
 
 // TODO would it be better to just use scandir + an extra pass to fill cvector of files?
@@ -291,7 +289,7 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 		cvec_push_file(files, &f);
 	}
 
-	printf("Found %"PRIcv_sz" files in %s\n", files->size, dirpath);
+	FB_LOG("Found %"PRIcv_sz" files in %s\n", files->size, dirpath);
 
 	closedir(dir);
 	return 1;
@@ -403,9 +401,9 @@ void switch_dir(file_browser* fb, const char* dir)
 	fb->text_buf[0] = 0;
 	fb->text_len = 0;
 
-	printf("switching to '%s'\n", fb->dir);
+	FB_LOG("switching to '%s'\n", fb->dir);
 	fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts);
 	qsort(fb->files.a, fb->files.size, sizeof(file), fb->c_func);
-	g->list_setscroll = SDL_TRUE;
-	g->selection = 0;
+	fb->list_setscroll = TRUE;
+	fb->selection = 0;
 }

@@ -14,23 +14,10 @@
 // THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
-//
-// TODO struct packing?  save a few bytes?
-typedef struct file
-{
-	char* path;   // could be url;
 
-	// time_t is a long int ...
-	time_t modified;
-	int size;     // in bytes (hard to believe it'd be bigger than ~2.1 GB)
+#include "file.h"
 
-	//  caching for list mode
-	char mod_str[MOD_STR_BUF];
-	char size_str[SIZE_STR_BUF];
-	char* name;  // pointing at filename in path
-} file;
-
-CVEC_NEW_DECLS2(file)
+#include "string_compare.c"
 
 CVEC_NEW_DEFS2(file, RESIZE)
 

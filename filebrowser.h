@@ -1,10 +1,10 @@
 #ifndef FILE_BROWSER_H
 #define FILE_BROWSER_H
 
-#define SIZE_STR_BUF 16
-#define MOD_STR_BUF 24
 
-#define NUM_DFLT_EXTS 11
+// pulls in cvector
+#include "file.h"
+
 
 #define TRUE 1
 #define FALSE 0
@@ -13,13 +13,14 @@ enum { MENU_NONE, MENU_MISC, MENU_SORT, MENU_EDIT, MENU_VIEW };
 enum { DELAY, ALWAYS, NEVER };
 enum { SORT_NAME, SORT_PATH, SORT_SIZE, SORT_MODIFIED, NUM_USEREVENTS };
 
-#define RESIZE(x) ((x+1)*2)
-
-#include "string_compare.c"
-#include "file.c"
+#ifndef FB_LOG
+#define FB_LOG(A, ...) printf(A, __VA_ARGS__)
+#endif
 
 #define FILE_LIST_SZ 20
+#define STRBUF_SZ 512
 #define MAX_PATH_LEN STRBUF_SZ
+#define PATH_SEPARATOR '/'
 
 typedef int (*recents_func)(cvector_str* recents, void * userdata);
 typedef int (*cmp_func)(const void* a, const void* b);
@@ -46,6 +47,7 @@ typedef struct file_browser
 	int is_recents;
 	int is_search_results;
 	int is_text_path; // could change to flag if I add a third option
+	int list_setscroll;
 
 	// does not own memory
 	const char** exts;
@@ -57,7 +59,7 @@ typedef struct file_browser
 
 	
 	cvector_i search_results;
-	//int selection;
+	int selection;
 
 	int begin;
 	int end;

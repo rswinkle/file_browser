@@ -1,5 +1,10 @@
 
+
+#define CVECTOR_IMPLEMENTATION
+#include "filebrowser.h"
+
 #include "myinttypes.h"
+
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -35,7 +40,7 @@
 #define GUI_MENU_WIN_H 600
 
 #define FONT_SIZE 24
-#define PATH_SEPARATOR '/'
+#define NUM_DFLT_EXTS 11
 
 // Better names/macros
 enum {
@@ -221,7 +226,7 @@ int main(int argc, char** argv)
 	init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, gnome_recents, NULL);
 
 	// default no no selection
-	g->selection = -1;
+	browser.selection = -1;
 
 	//struct nk_colorf bg2 = nk_rgb(28,48,62);
 	g->bg = nk_rgb(0,0,0);
@@ -352,8 +357,8 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 
 			// switch to normal mode on that image
 			case SDLK_RETURN:
-				if (g->selection >= 0) {
-					int sel = (fb->is_search_results) ? fb->search_results.a[g->selection] : g->selection;
+				if (fb->selection >= 0) {
+					int sel = (fb->is_search_results) ? fb->search_results.a[fb->selection] : fb->selection;
 					if (f->a[sel].size == -1) {
 						switch_dir(fb, f->a[sel].path);
 					} else {
@@ -374,13 +379,13 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 			case SDLK_k:
 			case SDLK_j:
 				//puts("arrow up/down");
-				g->selection += (sym == SDLK_DOWN || sym == SDLK_j) ? 1 : -1;
-				if (g->selection < 0)
-					g->selection += f->size;
+				fb->selection += (sym == SDLK_DOWN || sym == SDLK_j) ? 1 : -1;
+				if (fb->selection < 0)
+					fb->selection += f->size;
 				else
-					g->selection %= f->size;
+					fb->selection %= f->size;
 				// TODO don't set unless necessary
-				g->list_setscroll = SDL_TRUE;
+				fb->list_setscroll = TRUE;
 				break;
 			}
 
@@ -487,19 +492,19 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 			// use no selection to ignore the "Enter" in events so we don't exit
 			// list mode.  Could add state to handle keeping the selection but meh
-			g->selection = -1;  // no selection among search
+			fb->selection = -1;  // no selection among search
 			//nk_edit_unfocus(ctx);
 		}
 
 		// only enable "Open" button if you have a selection
-		if (g->selection < 0) {
+		if (fb->selection < 0) {
 			nk_widget_disable_begin(ctx);
 		}
 		if (nk_button_label(ctx, "Open")) {
-			if (f->a[g->selection].size == -1) {
-				switch_dir(fb, f->a[g->selection].path);
+			if (f->a[fb->selection].size == -1) {
+				switch_dir(fb, f->a[fb->selection].path);
 			} else {
-				strncpy(fb->file, f->a[g->selection].path, MAX_PATH_LEN);
+				strncpy(fb->file, f->a[fb->selection].path, MAX_PATH_LEN);
 				ret = 0;
 			}
 		}
@@ -694,8 +699,8 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 						fb->is_search_results = FALSE;
 						fb->text_buf[0] = 0;
 						fb->text_len = 0;
-						g->selection = -1;
-						g->list_setscroll = SDL_TRUE;
+						fb->selection = -1;
+						fb->list_setscroll = TRUE;
 					}
 				} else {
 					if (nk_list_view_begin(ctx, &rview, "Result List", NK_WINDOW_BORDER, FONT_SIZE+16, fb->search_results.size)) {
@@ -703,16 +708,16 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 						int i;
 						for (int j=rview.begin; j<rview.end; ++j) {
 							i = fb->search_results.a[j];
-							// TODO Do I really need g->selection?  Can I use g->img[0].index (till I get multiple selection)
+							// TODO Do I really need fb->selection?  Can I use g->img[0].index (till I get multiple selection)
 							// also thumb_sel serves the same/similar purpose
-							is_selected = g->selection == j;
+							is_selected = fb->selection == j;
 							if (nk_selectable_label(ctx, f->a[i].name, NK_TEXT_LEFT, &is_selected)) {
 								if (is_selected) {
-									g->selection = j;
+									fb->selection = j;
 								} else {
 									// could support unselecting, esp. with CTRL somehow if I ever allow
 									// multiple selection
-									// g->selection = -1;
+									// fb->selection = -1;
 
 									// for now, treat clicking a selection as a "double click" ie same as return
 									if (f->a[i].size == -1) {
@@ -732,13 +737,13 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 						nk_list_view_end(&rview);
 					}
 				}
-				if (g->list_setscroll && (rview.end-rview.begin < f->size)) {
+				if (fb->list_setscroll && (rview.end-rview.begin < f->size)) {
 					nk_uint x = 0, y;
 					int scroll_limit = rview.total_height - list_height; // little off
-					y = (g->selection/(float)(f->size-1) * scroll_limit) + 0.999f;
+					y = (fb->selection/(float)(f->size-1) * scroll_limit) + 0.999f;
 					//nk_group_get_scroll(ctx, "Image List", &x, &y);
 					nk_group_set_scroll(ctx, "Result List", x, y);
-					g->list_setscroll = SDL_FALSE;
+					fb->list_setscroll = FALSE;
 				}
 			} else {
 				if (nk_list_view_begin(ctx, &lview, "File List", NK_WINDOW_BORDER, FONT_SIZE+16, f->size)) {
@@ -747,12 +752,12 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 					nk_layout_row(ctx, NK_DYNAMIC, 0, 3, ratios);
 					for (int i=lview.begin; i<lview.end; ++i) {
 						assert(i < f->size);
-						// Do I really need g->selection?  Can I use g->img[0].index (till I get multiple selection)
+						// Do I really need fb->selection?  Can I use g->img[0].index (till I get multiple selection)
 						// also thumb_sel serves the same/similar purpose
-						is_selected = g->selection == i;
+						is_selected = fb->selection == i;
 						if (nk_selectable_label(ctx, f->a[i].name, NK_TEXT_LEFT, &is_selected)) {
 							if (is_selected) {
-								g->selection = i;
+								fb->selection = i;
 							} else {
 								if (f->a[i].size == -1) {
 									switch_dir(fb, f->a[i].path);
@@ -770,13 +775,13 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 					nk_list_view_end(&lview);
 				}
 
-				if (g->list_setscroll && (lview.end-lview.begin < f->size)) {
+				if (fb->list_setscroll && (lview.end-lview.begin < f->size)) {
 					nk_uint x = 0, y;
 					int scroll_limit = lview.total_height - list_height; // little off
-					y = (g->selection/(float)(f->size-1) * scroll_limit) + 0.999f;
+					y = (fb->selection/(float)(f->size-1) * scroll_limit) + 0.999f;
 					//nk_group_get_scroll(ctx, "Image List", &x, &y);
 					nk_group_set_scroll(ctx, "File List", x, y);
-					g->list_setscroll = SDL_FALSE;
+					fb->list_setscroll = FALSE;
 				}
 			}
 			nk_group_end(ctx);
