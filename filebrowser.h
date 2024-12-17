@@ -5,6 +5,9 @@
 // pulls in cvector
 #include "file.h"
 
+#ifndef FILE_TYPE_STR
+#define FILE_TYPE_STR "Match Exts"
+#endif
 
 #define TRUE 1
 #define FALSE 0

@@ -1,5 +1,6 @@
 
 
+#define FILE_TYPE_STR "Images"
 #define CVECTOR_IMPLEMENTATION
 #include "filebrowser.h"
 
@@ -223,7 +224,8 @@ int main(int argc, char** argv)
 	if (argc == 2) {
 		start_dir = argv[1];
 	}
-	init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, gnome_recents, NULL);
+	//init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, gnome_recents, NULL);
+	init_file_browser(&browser, default_exts, 0, start_dir, gnome_recents, NULL);
 
 	// default no no selection
 	browser.selection = -1;
@@ -448,6 +450,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 
 	int search_flags = NK_EDIT_FIELD | NK_EDIT_SIG_ENTER | NK_EDIT_GOTO_END_ON_ACTIVATE;
+	int text_path_flags = NK_EDIT_SELECTABLE | NK_EDIT_CLIPBOARD | NK_EDIT_AUTO_SELECT;
 
 	SDL_Event event = { .type = g->userevent };
 
@@ -551,7 +554,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 				*/
 				
 				int dir_len = strlen(fb->dir);
-				nk_edit_string(ctx, NK_EDIT_SELECTABLE|NK_EDIT_CLIPBOARD, fb->dir, &dir_len, MAX_PATH_LEN, nk_filter_default);
+				nk_edit_string(ctx, text_path_flags, fb->dir, &dir_len, MAX_PATH_LEN, nk_filter_default);
 
 
 				if (nk_button_label(ctx, "Up")) {
@@ -577,20 +580,23 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 			nk_label(ctx, "Settings", NK_TEXT_CENTERED);
 
-			//nk_checkbox_label(ctx, "All Files", &fb->ignore_exts);
-			static const char* ext_opts[] = { "Images", "All Files" };
-			struct nk_rect bounds = nk_widget_bounds(ctx);
-			int old = fb->ignore_exts;
-			fb->ignore_exts = nk_combo(ctx, ext_opts, NK_LEN(ext_opts), old, FONT_SIZE, nk_vec2(bounds.w, 300));
-			if (fb->ignore_exts != old) {
-				if (!fb->is_recents) {
-					switch_dir(fb, NULL);
-				} else {
-					handle_recents(fb);
-					//fb->get_recents(fb, fb->userdata);
+			if (fb->num_exts) {
+				//nk_checkbox_label(ctx, "All Files", &fb->ignore_exts);
+				static const char* ext_opts[] = { FILE_TYPE_STR, "All Files" };
+				struct nk_rect bounds = nk_widget_bounds(ctx);
+				int old = fb->ignore_exts;
+				fb->ignore_exts = nk_combo(ctx, ext_opts, NK_LEN(ext_opts), old, FONT_SIZE, nk_vec2(bounds.w, 300));
+				if (fb->ignore_exts != old) {
+					if (!fb->is_recents) {
+						switch_dir(fb, NULL);
+					} else {
+						handle_recents(fb);
+						//fb->get_recents(fb, fb->userdata);
+					}
 				}
 			}
 			static const char* path_opts[] = { "Breadcrumbs", "Text" };
+			struct nk_rect bounds = nk_widget_bounds(ctx);
 			fb->is_text_path = nk_combo(ctx, path_opts, NK_LEN(path_opts), fb->is_text_path, FONT_SIZE, nk_vec2(bounds.w, 300));
 
 			nk_label(ctx, "Bookmarks", NK_TEXT_CENTERED);
