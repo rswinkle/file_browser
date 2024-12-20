@@ -406,4 +406,6 @@ void switch_dir(file_browser* fb, const char* dir)
 	qsort(fb->files.a, fb->files.size, sizeof(file), fb->c_func);
 	fb->list_setscroll = TRUE;
 	fb->selection = 0;
+
+	fb->begin = 0;
 }
