@@ -36,10 +36,6 @@
 
 #define STRBUF_SZ 512
 
-#define GUI_BAR_HEIGHT 50
-#define GUI_MENU_WIN_W 550
-#define GUI_MENU_WIN_H 600
-
 #define FONT_SIZE 24
 #define NUM_DFLT_EXTS 11
 
@@ -353,8 +349,18 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 			sym = e.key.keysym.sym;
 			switch (sym) {
 			case SDLK_ESCAPE:
-				nk_input_end(ctx);
-				return 1;
+				if (fb->is_search_results) {
+					fb->text_buf[0] = 0;
+					fb->text_len = 0;
+					fb->is_search_results = FALSE;
+					if (fb->selection >= 0) {
+						fb->selection = fb->search_results.a[fb->selection];
+					}
+					fb->list_setscroll = TRUE;
+				} else {
+					nk_input_end(ctx);
+					return 1;
+				}
 				break;
 
 			// switch to normal mode on that image
@@ -471,7 +477,6 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 
 		//printf("scr_w,scr_h = %d, %d\n%f %f\n", scr_w, scr_h, win_content_rect.w, win_content_rect.h);
-		//search_height = nk_widget_bounds(ctx).h;
 
 		nk_layout_row_template_begin(ctx, 0);
 		nk_layout_row_template_push_static(ctx, 100);
@@ -483,6 +488,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			ret = 0;
 		}
 
+		search_height = nk_widget_bounds(ctx).h;
 		// Search field
 		// TODO
 		//nk_button_label(ctx, "Search");
@@ -513,11 +519,14 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 		}
 		nk_widget_disable_end(ctx);
 
+		int path_rows = 1; // default 1 for text path
 		// don't show path if recents or in root directory "/"
 		if (!fb->is_recents && fb->dir[1]) {
 			// method 1
 			// breadcrumb buttons
 			if (!fb->is_text_path) {
+				int depth = 0; // number of breadcrumb buttons;
+
 				ctx->style.window.spacing.x = 0;
 				char *d = fb->dir;
 				char *begin = d + 1;
@@ -531,10 +540,12 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 							switch_dir(fb, NULL);
 							break;
 						}
+						depth++;
 						if (tmp) *d = '/';
 						begin = d + 1;
 					}
 				}
+				path_rows = depth/6 + 1;
 				ctx->style.window.spacing.x = win_spacing.x;
 			} else {
 
@@ -696,7 +707,9 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 			float ratios[] = { header_ratios[0]+0.01f, header_ratios[2], header_ratios[4]+0.01f };
 			
-			nk_layout_row_dynamic(ctx, scr_h-GUI_BAR_HEIGHT-2*search_height, 1);
+			// path_rows is 1 for text mode or >=1 for breadcrumb mode, +2 for
+			// the search bar and the column header buttons
+			nk_layout_row_dynamic(ctx, scr_h-(path_rows+2)*search_height, 1);
 
 
 			if (fb->is_search_results) {
@@ -758,8 +771,6 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 					nk_layout_row(ctx, NK_DYNAMIC, 0, 3, ratios);
 					for (int i=lview.begin; i<lview.end; ++i) {
 						assert(i < f->size);
-						// Do I really need fb->selection?  Can I use g->img[0].index (till I get multiple selection)
-						// also thumb_sel serves the same/similar purpose
 						is_selected = fb->selection == i;
 						if (nk_selectable_label(ctx, f->a[i].name, NK_TEXT_LEFT, &is_selected)) {
 							if (is_selected) {
