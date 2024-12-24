@@ -338,7 +338,7 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 				SDL_Log("Unknown user event!");
 			}
 			if (did_sort && fb->is_search_results) {
-				search_filenames(fb);
+				fb_search_filenames(fb);
 			}
 			continue;
 		}
@@ -497,7 +497,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 		active = nk_edit_string(ctx, search_flags, fb->text_buf, &fb->text_len, STRBUF_SZ, nk_filter_default);
 		if (active & NK_EDIT_COMMITED && fb->text_len) {
 
-			search_filenames(fb);
+			fb_search_filenames(fb);
 			memset(&rview, 0, sizeof(rview));
 			fb->is_search_results = TRUE;
 

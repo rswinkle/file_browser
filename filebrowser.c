@@ -156,7 +156,7 @@ void handle_recents(file_browser* fb)
 }
 
 
-void search_filenames(file_browser* fb)
+void fb_search_filenames(file_browser* fb)
 {
 	// fast enough to do here?  I do it in events?
 	char* text = fb->text_buf;

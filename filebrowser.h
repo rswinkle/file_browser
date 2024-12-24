@@ -73,7 +73,7 @@ void free_file_browser(file_browser* fb);
 void switch_dir(file_browser* fb, const char* dir);
 void handle_recents(file_browser* fb);
 
-void search_filenames(file_browser* fb);
+void fb_search_filenames(file_browser* fb);
 const char* get_homedir();
 int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts);
 char* mydirname(const char* path, char* dirpath);
