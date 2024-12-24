@@ -12,10 +12,6 @@
 #define TRUE 1
 #define FALSE 0
 
-enum { MENU_NONE, MENU_MISC, MENU_SORT, MENU_EDIT, MENU_VIEW };
-enum { DELAY, ALWAYS, NEVER };
-enum { SORT_NAME, SORT_PATH, SORT_SIZE, SORT_MODIFIED, NUM_USEREVENTS };
-
 #ifndef FB_LOG
 #define FB_LOG(A, ...) printf(A, __VA_ARGS__)
 #endif

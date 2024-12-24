@@ -39,6 +39,8 @@
 #define FONT_SIZE 24
 #define NUM_DFLT_EXTS 11
 
+enum { SORT_NAME, SORT_PATH, SORT_SIZE, SORT_MODIFIED, NUM_USEREVENTS };
+
 // Better names/macros
 enum {
 	NORMAL           = 0x1,
