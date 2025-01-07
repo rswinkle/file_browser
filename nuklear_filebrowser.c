@@ -36,7 +36,7 @@
 
 #define STRBUF_SZ 512
 
-#define FONT_SIZE 24
+#define FONT_SIZE 16
 #define NUM_DFLT_EXTS 11
 
 enum { SORT_NAME, SORT_PATH, SORT_SIZE, SORT_MODIFIED, NUM_USEREVENTS };
@@ -81,7 +81,7 @@ global_state* g = &g_state;
 
 int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_h);
 
-int gnome_recents(cvector_str* recents, void* userdata);
+int linux_recents(cvector_str* recents, void* userdata);
 
 //int handle_events(struct nk_context* ctx);
 int handle_events(file_browser* fb, struct nk_context* ctx);
@@ -191,7 +191,7 @@ int main(int argc, char** argv)
 	struct nk_font* font;
 
 	nk_sdl_font_stash_begin(&atlas);
-	font = nk_font_atlas_add_default(atlas, 24*font_scale, &config);
+	font = nk_font_atlas_add_default(atlas, FONT_SIZE*font_scale, &config);
 	//font = nk_font_atlas_add_from_file(atlas, "../fonts/kenvector_future_thin.ttf", 13 * font_scale, &config);
 	nk_sdl_font_stash_end();
 
@@ -222,8 +222,8 @@ int main(int argc, char** argv)
 	if (argc == 2) {
 		start_dir = argv[1];
 	}
-	//init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, gnome_recents, NULL);
-	init_file_browser(&browser, default_exts, 0, start_dir, gnome_recents, NULL);
+	//init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, linux_recents, NULL);
+	init_file_browser(&browser, default_exts, 0, start_dir, linux_recents, NULL);
 
 	// default no no selection
 	browser.selection = -1;
@@ -898,7 +898,7 @@ int file_read(FILE* file, char** out)
 	return size;
 }
 
-int gnome_recents(cvector_str* recents, void* userdata)
+int linux_recents(cvector_str* recents, void* userdata)
 {
 	assert(recents);
 
