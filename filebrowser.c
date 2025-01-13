@@ -36,8 +36,12 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 
 	size_t l = 0;
 	strncpy(browser->home, home, MAX_PATH_LEN);
+#ifdef _WIN32
+	normalize_path(browser->home);
+#endif
 	browser->home[MAX_PATH_LEN - 1] = 0;
 
+	home = browser->home;
 	const char* sd = home;
 	if (start_dir) {
 		l = strlen(start_dir);
@@ -68,7 +72,7 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 	browser->exts = exts;
 	browser->num_exts = num_exts;
 
-	fb_scandir(&browser->files, browser->dir, exts, num_exts);
+	fb_scandir(&browser->files, browser->dir, exts, num_exts, 0);
 
 	qsort(browser->files.a, browser->files.size, sizeof(file), filename_cmp_lt);
 	browser->sorted_state = NAME_UP;
@@ -200,7 +204,7 @@ void fb_search_filenames(file_browser* fb)
 
 // TODO would it be better to just use scandir + an extra pass to fill cvector of files?
 // How portable would that be?  Windows? etc.
-int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts)
+int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden)
 {
 	assert(!num_exts || exts);
 
@@ -227,7 +231,7 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 	while ((entry = readdir(dir))) {
 
 		// faster than 2 strcmp calls? ignore "." and ".."
-		if (entry->d_name[0] == '.' && (!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2]))) {
+		if (entry->d_name[0] == '.' && ((!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2])) || !show_hidden)) {
 			continue;
 		}
 
@@ -391,6 +395,7 @@ void switch_dir(file_browser* fb, const char* dir)
 {
 	if (dir) {
 		if (!strncmp(fb->dir, dir, MAX_PATH_LEN)) {
+			FB_LOG("No need to switch to %s\n", dir);
 			return;
 		}
 		strncpy(fb->dir, dir, MAX_PATH_LEN);
@@ -402,7 +407,37 @@ void switch_dir(file_browser* fb, const char* dir)
 	fb->text_len = 0;
 
 	FB_LOG("switching to '%s'\n", fb->dir);
-	fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts);
+#ifndef _WIN32
+	fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts, fb->show_hidden);
+#else
+	if (fb->dir[1]) {
+		fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts, fb->show_hidden);
+	} else {
+		// have to handle "root" special on windows since it doesn't have a unified filesystem
+		// like *nix
+		char buf[STRBUF_SZ];
+		cvec_clear_file(&fb->files);
+		int sz = GetLogicalDriveStrings(sizeof(buf), buf);
+		file f = {0};
+		f.size = -1;
+		if (sz > 0) {
+			char* p = buf, *p2;
+			while (*p && (p2 = strchr(p, 0))) {
+				p[2] = '/'; // change \ to / so "C:/" instead of "C:\"
+
+				f.path = strdup(p);
+				f.name = f.path;
+				cvec_push_file(&fb->files, &f);
+
+				p = p2+1;
+			}
+		} else {
+			DWORD err = GetLastError();
+			FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0, buf, sizeof(buf), 0);
+			SDL_Log("Error getting drive names: %s\n", buf);
+		}
+	}
+#endif
 	qsort(fb->files.a, fb->files.size, sizeof(file), fb->c_func);
 	fb->list_setscroll = TRUE;
 	fb->selection = 0;
