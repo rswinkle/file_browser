@@ -74,6 +74,8 @@ typedef struct global_state
 	float x_scale;
 	float y_scale;
 
+	cvector_str bookmarks;
+
 } global_state;
 
 global_state g_state;
@@ -630,6 +632,25 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			}
 			if (nk_button_label(ctx, "Computer")) {
 				switch_dir(fb, "/");
+			}
+			char** bmarks = g->bookmarks.a;
+			for (int i=0; i<g->bookmarks.size; ++i) {
+				char* b = bmarks[i];
+				char* name = strrchr(b, '/');
+
+				// handle Windows "C:/" correctly
+				if (name == &b[2] && b[1] == ':') {
+					name = &b[0];
+				}
+				if (name != b) {
+					name++;
+				}
+				if (nk_button_label(ctx, name)) {
+					switch_dir(fb, b);
+				}
+			}
+			if (nk_button_label(ctx, "Add to Bookmarks")) {
+				cvec_push_str(&g->bookmarks, fb->dir);
 			}
 
 

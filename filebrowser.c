@@ -352,9 +352,11 @@ char* mybasename(const char* path, char* base)
 //stupid windows
 void normalize_path(char* path)
 {
-	for (int i=0; path[i]; ++i) {
-		if (path[i] == '\\')
-			path[i] = '/';
+	if (path) {
+		for (int i=0; path[i]; ++i) {
+			if (path[i] == '\\')
+				path[i] = '/';
+		}
 	}
 }
 
