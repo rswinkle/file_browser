@@ -392,11 +392,17 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 			case SDLK_j:
 				//puts("arrow up/down");
 				fb->selection += (sym == SDLK_DOWN || sym == SDLK_j) ? 1 : -1;
-				if (fb->selection < 0)
-					fb->selection += f->size;
-				else
-					fb->selection %= f->size;
-				// TODO don't set unless necessary
+				if (fb->is_search_results) {
+					if (fb->selection < 0)
+						fb->selection += fb->search_results.size;
+					else
+						fb->selection %= fb->search_results.size;
+				} else {
+					if (fb->selection < 0)
+						fb->selection += f->size;
+					else
+						fb->selection %= f->size;
+				}
 				fb->list_setscroll = TRUE;
 				break;
 			}
@@ -783,12 +789,10 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 						nk_list_view_end(&rview);
 					}
 				}
-				if (fb->list_setscroll && (rview.end-rview.begin < f->size)) {
-					nk_uint x = 0, y;
+				if (fb->list_setscroll && rview.total_height > list_height) {
 					int scroll_limit = rview.total_height - list_height; // little off
-					y = (fb->selection/(float)(f->size-1) * scroll_limit) + 0.999f;
-					//nk_group_get_scroll(ctx, "Image List", &x, &y);
-					nk_group_set_scroll(ctx, "Result List", x, y);
+					nk_uint y = (fb->selection/(float)(fb->search_results.size-1) * scroll_limit) + 0.999f;
+					nk_group_set_scroll(ctx, "Result List", 0, y);
 					fb->list_setscroll = FALSE;
 				}
 			} else {
@@ -819,12 +823,10 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 					nk_list_view_end(&lview);
 				}
 
-				if (fb->list_setscroll && (lview.end-lview.begin < f->size)) {
-					nk_uint x = 0, y;
+				if (fb->list_setscroll && lview.total_height > list_height) {
 					int scroll_limit = lview.total_height - list_height; // little off
-					y = (fb->selection/(float)(f->size-1) * scroll_limit) + 0.999f;
-					//nk_group_get_scroll(ctx, "Image List", &x, &y);
-					nk_group_set_scroll(ctx, "File List", x, y);
+					nk_uint y = (fb->selection/(float)(f->size-1) * scroll_limit) + 0.999f;
+					nk_group_set_scroll(ctx, "File List", 0, y);
 					fb->list_setscroll = FALSE;
 				}
 			}
