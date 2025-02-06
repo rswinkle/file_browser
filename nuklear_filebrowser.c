@@ -385,25 +385,23 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 		case SDL_KEYDOWN:
 			sym = e.key.keysym.sym;
 			switch (sym) {
-			// TODO navigate through the list mode like thumb mode ie vim?
 			case SDLK_UP:
 			case SDLK_DOWN:
-			case SDLK_k:
-			case SDLK_j:
-				//puts("arrow up/down");
-				fb->selection += (sym == SDLK_DOWN || sym == SDLK_j) ? 1 : -1;
-				if (fb->is_search_results) {
-					if (fb->selection < 0)
-						fb->selection += fb->search_results.size;
-					else
-						fb->selection %= fb->search_results.size;
-				} else {
-					if (fb->selection < 0)
-						fb->selection += f->size;
-					else
-						fb->selection %= f->size;
+				if (!fb->text_len || fb->is_search_results) {
+					fb->selection += (sym == SDLK_DOWN || sym == SDLK_j) ? 1 : -1;
+					if (fb->is_search_results) {
+						if (fb->selection < 0)
+							fb->selection += fb->search_results.size;
+						else
+							fb->selection %= fb->search_results.size;
+					} else {
+						if (fb->selection < 0)
+							fb->selection += f->size;
+						else
+							fb->selection %= f->size;
+					}
+					fb->list_setscroll = TRUE;
 				}
-				fb->list_setscroll = TRUE;
 				break;
 			}
 
