@@ -523,8 +523,7 @@ int split(c_array* array, byte* delim, size_t delim_len, c_array* out)
 				max_len *= 2;
 				out->data = (byte*)realloc(results, max_len*out->elem_size + 1);
 				if (!out->data) {
-					free(results);
-					out->data = NULL;
+					free(results); // Why am I getting a compiler warning for this?
 					out->len = 0;
 					return 0;
 				}

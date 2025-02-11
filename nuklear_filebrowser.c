@@ -1,5 +1,8 @@
 
+#define CLNK_IMPLEMENTATION
+#include "clnk.h"
 
+#define FILE_LIST_SZ 20
 #define FILE_TYPE_STR "Images"
 #define CVECTOR_IMPLEMENTATION
 #include "filebrowser.h"
@@ -15,7 +18,6 @@
 #include <time.h>
 
 
-// TODO sin, cos, sqrt etc.
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_DEFAULT_ALLOCATOR
 #define NK_INCLUDE_STANDARD_VARARGS
@@ -38,6 +40,8 @@
 
 #define FONT_SIZE 16
 #define NUM_DFLT_EXTS 11
+
+#define UNUSED(X) (void)X
 
 enum { SORT_NAME, SORT_PATH, SORT_SIZE, SORT_MODIFIED, NUM_USEREVENTS };
 
@@ -84,8 +88,8 @@ global_state* g = &g_state;
 int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_h);
 
 int linux_recents(cvector_str* recents, void* userdata);
+int windows_recents(cvector_str* recents, void* userdata);
 
-//int handle_events(struct nk_context* ctx);
 int handle_events(file_browser* fb, struct nk_context* ctx);
 
 int main(int argc, char** argv)
@@ -224,8 +228,13 @@ int main(int argc, char** argv)
 	if (argc == 2) {
 		start_dir = argv[1];
 	}
-	//init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, linux_recents, NULL);
+
+	// TODO MacOS?
+#ifndef _WIN32
 	init_file_browser(&browser, default_exts, 0, start_dir, linux_recents, NULL);
+#else
+	init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, windows_recents, NULL);
+#endif
 
 	// default no no selection
 	browser.selection = -1;
@@ -404,6 +413,7 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 				}
 				break;
 			}
+			break; //KEYDOWN
 
 		case SDL_WINDOWEVENT: {
 			//g->status = REDRAW;
@@ -457,11 +467,9 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	struct nk_rect bounds;
 	const struct nk_input* in = &ctx->input;
 
-	// TODO move to browser?
 	static struct nk_list_view lview, rview;
 	static float header_ratios[] = {0.49f, 0.01f, 0.15f, 0.01f, 0.34f };
 	static int splitter_down = 0;
-
 
 	int search_flags = NK_EDIT_FIELD | NK_EDIT_SIG_ENTER | NK_EDIT_GOTO_END_ON_ACTIVATE;
 	int text_path_flags = NK_EDIT_SELECTABLE | NK_EDIT_CLIPBOARD | NK_EDIT_AUTO_SELECT;
@@ -925,6 +933,8 @@ int file_read(FILE* file, char** out)
 
 int linux_recents(cvector_str* recents, void* userdata)
 {
+	UNUSED(userdata);
+
 	assert(recents);
 
 	char path[MAX_PATH_LEN];
@@ -975,6 +985,38 @@ int linux_recents(cvector_str* recents, void* userdata)
 	// unnecessary with size included in cvector_str...
 	return i;
 }
+
+int windows_recents(cvector_str* recents, void* userdata)
+{
+	UNUSED(userdata);
+
+	assert(recents);
+
+	char recents_dir_buf[STRBUF_SZ];
+	int ret = snprintf(recents_dir_buf, STRBUF_SZ, "%s\\Microsoft\\Windows\\Recent", getenv("APPDATA"));
+	if (ret >= STRBUF_SZ) {
+		return 0;
+	}
+
+	// TODO could just use scandir or inline opendir/readdir since all the extra file work is wasted...
+	// Or have windows and lnk files be a special case and just switch to the directory but when they
+	// click on a lnk file extract the path right then...?
+	cvector_file links = {0};
+	const char* exts[] = { ".lnk" }; // shouldn't be anything else in the directory but jic
+
+	fb_scandir(&links, recents_dir_buf, exts, 1, SDL_FALSE, SDL_FALSE);
+
+	char* tmp;
+	for (int i=0; i<links.size; ++i) {
+		if ((tmp = clnk_get_path(links.a[i].path))) {
+			normalize_path(tmp);
+			cvec_pushm_str(recents, tmp);
+		}
+	}
+	cvec_free_file(&links);
+	return recents->size;
+}
+
 
 
 

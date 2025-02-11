@@ -16,7 +16,6 @@
 #define FB_LOG(A, ...) printf(A, __VA_ARGS__)
 #endif
 
-#define FILE_LIST_SZ 20
 #define STRBUF_SZ 512
 #define MAX_PATH_LEN STRBUF_SZ
 #define PATH_SEPARATOR '/'
@@ -48,6 +47,7 @@ typedef struct file_browser
 	int is_text_path; // could change to flag if I add a third option
 	int list_setscroll;
 	int show_hidden;
+	int select_dir;
 
 	// does not own memory
 	const char** exts;
@@ -60,8 +60,12 @@ typedef struct file_browser
 	cvector_i search_results;
 	int selection;
 
+	// Not used internally, only if the user wants to control the
+	// list view see terminal_filebrowser.c
+#ifdef FILE_LIST_SZ
 	int begin;
 	int end;
+#endif
 
 	int sorted_state;
 	cmp_func c_func;
@@ -74,8 +78,8 @@ void switch_dir(file_browser* fb, const char* dir);
 void handle_recents(file_browser* fb);
 
 void fb_search_filenames(file_browser* fb);
-const char* get_homedir();
-int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden);
+const char* get_homedir(void);
+int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden, int select_dir);
 char* mydirname(const char* path, char* dirpath);
 char* mybasename(const char* path, char* base);
 void normalize_path(char* path);

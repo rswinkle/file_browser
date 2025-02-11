@@ -1,22 +1,36 @@
 
 // pulls in file and cvector
+#define FILE_LIST_SZ 20
 #include "filebrowser.h"
 
 #include <stdio.h>
 #include <ctype.h>
+
+// for realpath/_fullpath
+#include <stdlib.h>
 
 //POSIX (mostly) works with MinGW64
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
 
-// for getpwuid and getuid
-#include <pwd.h>
+// for getuid
 #include <unistd.h>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#define myrealpath(A, B) _fullpath(B, A, 0)
+#else
+// for getpwuid
+#include <pwd.h>
+
+#define myrealpath(A, B) realpath(A, B)
+#endif
 
 
-const char* get_homedir()
+const char* get_homedir(void)
 {
 	const char* home = getenv("HOME");
 #ifdef _WIN32
@@ -67,12 +81,14 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 
 	browser->files.elem_free = free_file;
 
-	browser->end = 20;
+#ifdef FILE_LIST_SZ
+	browser->end = FILE_LIST_SZ;
+#endif
 
 	browser->exts = exts;
 	browser->num_exts = num_exts;
 
-	fb_scandir(&browser->files, browser->dir, exts, num_exts, 0);
+	fb_scandir(&browser->files, browser->dir, exts, num_exts, 0, 0);
 
 	qsort(browser->files.a, browser->files.size, sizeof(file), filename_cmp_lt);
 	browser->sorted_state = NAME_UP;
@@ -82,6 +98,53 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 	browser->userdata = userdata;
 
 	return 1;
+}
+
+void reset_file_browser(file_browser* fb, char* start_dir)
+{
+	assert(fb->home[0]);
+	assert(fb->dir[0]);
+	assert(fb->desktop[0]);
+	assert(fb->files.elem_free == free_file);
+
+	// clear vectors and prior selection
+	fb->is_search_results = FALSE;
+	fb->select_dir = FALSE;
+	fb->file[0] = 0;
+	fb->text_len = 0;
+	fb->text_buf[0] = 0;
+
+	// TODO do we want to keep the old value?  I feel like not
+	fb->ignore_exts = FALSE;
+
+	// set start dir
+	size_t l = 0;
+	const char* sd = fb->dir;
+	if (start_dir) {
+		struct stat file_stat;
+		if (stat(start_dir, &file_stat)) {
+			perror("Could not stat start_dir, will use last directory");
+		} else if (l >= MAX_PATH_LEN) {
+			fprintf(stderr, "start_dir path too long, will use last directory\n");
+		} else {
+			sd = start_dir;
+			cvec_clear_file(&fb->files);
+			cvec_clear_i(&fb->search_results);
+			snprintf(fb->dir, MAX_PATH_LEN, "%s", sd);
+			l = strlen(start_dir);
+		}
+	}
+	// cut off trailing '/'
+	if (l > 1 && sd[l-1] == '/') {
+		fb->dir[l-1] = 0;
+	}
+
+	// scan and sort
+	fb_scandir(&fb->files, fb->dir, fb->exts, fb->num_exts, fb->show_hidden, fb->select_dir);
+
+	qsort(fb->files.a, fb->files.size, sizeof(file), filename_cmp_lt);
+	fb->sorted_state = NAME_UP;
+	fb->c_func = filename_cmp_lt;
 }
 
 void free_file_browser(file_browser* fb)
@@ -202,9 +265,8 @@ void fb_search_filenames(file_browser* fb)
 	FB_LOG("found %d matches\n", (int)fb->search_results.size);
 }
 
-// TODO would it be better to just use scandir + an extra pass to fill cvector of files?
-// How portable would that be?  Windows? etc.
-int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden)
+// Enough arguments now that I'm thinking of just passing file_browser* and accessing them as members
+int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden, int select_dir)
 {
 	assert(!num_exts || exts);
 
@@ -227,22 +289,28 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 	char* sep;
 	char* ext = NULL;
 	file f;
+	
+	// This is to turn windows drives like C:/ into C: so the fullpath below doesn't become C://subdir
+	// Can't remove the / before caling opendir or it won't work
+	int l = strlen(dirpath);
+	const char* fmt_strs[] = { "%s/%s", "%s%s" };
+	int has_ts = dirpath[l-1] == '/';
 
 	while ((entry = readdir(dir))) {
 
-		// faster than 2 strcmp calls? ignore "." and ".."
+		// faster than 2 strcmp calls? always ignore "." and ".." and all . files unless show_hidden
 		if (entry->d_name[0] == '.' && ((!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2])) || !show_hidden)) {
 			continue;
 		}
 
-		ret = snprintf(fullpath, STRBUF_SZ, "%s/%s", dirpath, entry->d_name);
+		ret = snprintf(fullpath, STRBUF_SZ, fmt_strs[has_ts], dirpath, entry->d_name);
 		if (ret >= STRBUF_SZ) {
 			// path too long
 			assert(ret >= STRBUF_SZ);
 			return 0;
 		}
 		if (stat(fullpath, &file_stat)) {
-			printf("%s\n", fullpath);
+			FB_LOG("%s\n", fullpath);
 			perror("stat");
 			continue;
 		}
@@ -252,6 +320,9 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 		}
 
 		if (S_ISREG(file_stat.st_mode)) {
+			if (select_dir) {
+				continue;
+			}
 			f.size = file_stat.st_size;
 
 			ext = strrchr(entry->d_name, '.');
@@ -270,16 +341,10 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 			f.size = -1;
 		}
 
-		// have to use fullpath not d_name in case we're in a recursive call
-#ifndef _WIN32
-		// resize to exact length to save memory, reduce internal
-		// fragmentation.  This dropped memory use by 80% in certain
-		// extreme cases.
-		//f.path = realpath(fullpath, NULL);
-		tmp = realpath(fullpath, NULL);
+		tmp = myrealpath(fullpath, NULL);
 		f.path = realloc(tmp, strlen(tmp)+1);
-#else
-		f.path = CVEC_STRDUP(fullpath);
+#ifdef _WIN32
+		normalize_path(f.path);
 #endif
 
 		f.modified = file_stat.st_mtime;
@@ -310,6 +375,8 @@ char* mydirname(const char* path, char* dirpath)
 		return dirpath;
 	}
 
+	// TODO doesn't correctly handle "/" "/hello" or anything that ends in a '/' like
+	// "/some/random/dir/"
 	char* last_slash = strrchr(path, PATH_SEPARATOR);
 	if (last_slash) {
 		strncpy(dirpath, path, last_slash-path);
@@ -354,8 +421,9 @@ void normalize_path(char* path)
 {
 	if (path) {
 		for (int i=0; path[i]; ++i) {
-			if (path[i] == '\\')
+			if (path[i] == '\\') {
 				path[i] = '/';
+			}
 		}
 	}
 }
@@ -410,10 +478,10 @@ void switch_dir(file_browser* fb, const char* dir)
 
 	FB_LOG("switching to '%s'\n", fb->dir);
 #ifndef _WIN32
-	fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts, fb->show_hidden);
+	fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts, fb->show_hidden, fb->select_dir);
 #else
 	if (fb->dir[1]) {
-		fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts, fb->show_hidden);
+		fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts, fb->show_hidden, fb->select_dir);
 	} else {
 		// have to handle "root" special on windows since it doesn't have a unified filesystem
 		// like *nix
@@ -436,7 +504,7 @@ void switch_dir(file_browser* fb, const char* dir)
 		} else {
 			DWORD err = GetLastError();
 			FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0, buf, sizeof(buf), 0);
-			SDL_Log("Error getting drive names: %s\n", buf);
+			FB_LOG("Error getting drive names: %s\n", buf);
 		}
 	}
 #endif
@@ -444,5 +512,7 @@ void switch_dir(file_browser* fb, const char* dir)
 	fb->list_setscroll = TRUE;
 	fb->selection = 0;
 
+#ifdef FILE_LIST_SZ
 	fb->begin = 0;
+#endif
 }

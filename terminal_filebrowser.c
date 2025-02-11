@@ -1,4 +1,5 @@
 
+#define FILE_LIST_SZ 20
 #define FILE_TYPE_STR "Images"
 #define CVECTOR_IMPLEMENTATION
 #include "filebrowser.h"
@@ -14,14 +15,6 @@
 #include <time.h>
 #include <ctype.h>
 
-//POSIX (mostly) works with MinGW64
-//#include <sys/stat.h>
-//#include <sys/types.h>
-//#include <dirent.h>
-//
-//// for getpwuid and getuid
-//#include <pwd.h>
-//#include <unistd.h>
 
 #define NUM_DFLT_EXTS 11
 
@@ -65,6 +58,7 @@ int main(int argc, char** argv)
 	running = 1;
 
 	file_browser browser = { 0 };
+	browser.end = 20;
 
 	char* start_dir = NULL;
 	if (argc == 2) {
@@ -98,13 +92,12 @@ void print_browser(file_browser* fb)
 
 	printf("dir = %s\n", fb->dir);
 	
-	printf("There are %ld files\n", f->size);
+	printf("There are %"PRIcv_sz" files\n", f->size);
 	puts("N. Sort by name");
 	puts("Z. Sort by size");
 	puts("M. Sort by last modified\n");
 
 	int invalid = 0;
-	static int pos;
 
 	for (int i=fb->begin, j=0; i<fb->end; i++, j++) {
 		printf("%2d %-40s%20s%30s\n", j, f->a[i].name, f->a[i].size_str, f->a[i].mod_str);
@@ -206,6 +199,7 @@ void print_browser(file_browser* fb)
 					qsort(fb->files.a, fb->files.size, sizeof(file), filemodified_cmp_lt);
 					fb->sorted_state = MODIFIED_UP;
 				}
+				break;
 
 			default:
 				invalid = 1;
