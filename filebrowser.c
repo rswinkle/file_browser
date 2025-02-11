@@ -1,6 +1,5 @@
 
 // pulls in file and cvector
-#define FILE_LIST_SZ 20
 #include "filebrowser.h"
 
 #include <stdio.h>

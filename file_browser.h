@@ -1,6 +1,47 @@
+
+#ifndef FILE_BROWSER_H
+#define FILE_BROWSER_H
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef FILEBROWSER_H
+#define FILEBROWSER_H
+
+
+// pulls in cvector
+#ifndef FILE_H
+#define FILE_H
+
+
+#ifndef MYINTTYPES_H
+#define MYINTTYPES_H
+
+#include <stdint.h>
+#include <inttypes.h>
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+
+#endif
+
+
+
+#define CVEC_ONLY_INT
+#define CVEC_ONLY_STR
+#define CVEC_SIZE_T i64
+#define PRIcv_sz PRIiMAX
 /*
 
-CVector 4.2.1 MIT Licensed vector (dynamic array) library in strict C89
+CVector 4.1.0 MIT Licensed vector (dynamic array) library in strict C89
 http://www.robertwinkler.com/projects/cvector.html
 http://www.robertwinkler.com/projects/cvector/
 
@@ -16,7 +57,7 @@ http://portablegl.com/
 
 The MIT License (MIT)
 
-Copyright (c) 2011-2025 Robert Winkler
+Copyright (c) 2011-2023 Robert Winkler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -37,6 +78,10 @@ IN THE SOFTWARE.
 
 #ifndef CVECTOR_H
 #define CVECTOR_H
+
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 #if defined(CVEC_ONLY_INT) || defined(CVEC_ONLY_DOUBLE) || defined(CVEC_ONLY_STR) || defined(CVEC_ONLY_VOID)
    #ifndef CVEC_ONLY_INT
@@ -62,7 +107,6 @@ IN THE SOFTWARE.
 #endif
 
 #ifndef CVEC_MALLOC
-#include <stdlib.h>
 #define CVEC_MALLOC(sz)      malloc(sz)
 #define CVEC_REALLOC(p, sz)  realloc(p, sz)
 #define CVEC_FREE(p)         free(p)
@@ -79,14 +123,10 @@ IN THE SOFTWARE.
 #endif
 
 #ifndef CVEC_SIZE_T
-#include <stdlib.h>
 #define CVEC_SIZE_T size_t
 #endif
 
-#ifndef CVEC_SZ
-#define CVEC_SZ
 typedef CVEC_SIZE_T cvec_sz;
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,7 +163,6 @@ int cvec_insert_array_i(cvector_i* vec, cvec_sz i, int* a, cvec_sz num);
 int cvec_replace_i(cvector_i* vec, cvec_sz i, int a);
 void cvec_erase_i(cvector_i* vec, cvec_sz start, cvec_sz end);
 int cvec_reserve_i(cvector_i* vec, cvec_sz size);
-#define cvec_shrink_to_fit_i(vec) cvec_set_cap_i((vec), (vec)->size)
 int cvec_set_cap_i(cvector_i* vec, cvec_sz size);
 void cvec_set_val_sz_i(cvector_i* vec, int val);
 void cvec_set_val_cap_i(cvector_i* vec, int val);
@@ -167,7 +206,6 @@ int cvec_insert_array_d(cvector_d* vec, cvec_sz i, double* a, cvec_sz num);
 double cvec_replace_d(cvector_d* vec, cvec_sz i, double a);
 void cvec_erase_d(cvector_d* vec, cvec_sz start, cvec_sz end);
 int cvec_reserve_d(cvector_d* vec, cvec_sz size);
-#define cvec_shrink_to_fit_d(vec) cvec_set_cap_d((vec), (vec)->size)
 int cvec_set_cap_d(cvector_d* vec, cvec_sz size);
 void cvec_set_val_sz_d(cvector_d* vec, double val);
 void cvec_set_val_cap_d(cvector_d* vec, double val);
@@ -223,7 +261,6 @@ void cvec_replace_str(cvector_str* vec, cvec_sz i, char* a, char* ret);
 void cvec_erase_str(cvector_str* vec, cvec_sz start, cvec_sz end);
 void cvec_remove_str(cvector_str* vec, cvec_sz start, cvec_sz end);
 int cvec_reserve_str(cvector_str* vec, cvec_sz size);
-#define cvec_shrink_to_fit_str(vec) cvec_set_cap_str((vec), (vec)->size)
 int cvec_set_cap_str(cvector_str* vec, cvec_sz size);
 void cvec_set_val_sz_str(cvector_str* vec, char* val);
 void cvec_set_val_cap_str(cvector_str* vec, char* val);
@@ -283,7 +320,6 @@ int cvec_replace_void(cvector_void* vec, cvec_sz i, void* a, void* ret);
 void cvec_erase_void(cvector_void* vec, cvec_sz start, cvec_sz end);
 void cvec_remove_void(cvector_void* vec, cvec_sz start, cvec_sz end);
 int cvec_reserve_void(cvector_void* vec, cvec_sz size);
-#define cvec_shrink_to_fit_void(vec) cvec_set_cap_void((vec), (vec)->size)
 int cvec_set_cap_void(cvector_void* vec, cvec_sz size);
 int cvec_set_val_sz_void(cvector_void* vec, void* val);
 int cvec_set_val_cap_void(cvector_void* vec, void* val);
@@ -602,7 +638,6 @@ void cvec_free_void(void* vec);
   {                                                                                         \
     cvector_##TYPE* tmp = (cvector_##TYPE*)vec;                                             \
     CVEC_FREE(tmp->a);                                                                      \
-    tmp->a        = NULL;                                                                   \
     tmp->size     = 0;                                                                      \
     tmp->capacity = 0;                                                                      \
   }
@@ -1172,7 +1207,7 @@ void cvec_free_void(void* vec);
     }                                                                                            \
                                                                                                  \
     CVEC_FREE(tmp->a);                                                                           \
-    tmp->a        = NULL;                                                                        \
+                                                                                                 \
     tmp->size     = 0;                                                                           \
     tmp->capacity = 0;                                                                           \
   }
@@ -1514,13 +1549,11 @@ void cvec_free_i_heap(void* vec)
 	CVEC_FREE(tmp);
 }
 
-/** Frees the internal array and zeros out the members to maintain a
- * consistent state */
+/** Frees the internal array and sets size and capacity to 0 */
 void cvec_free_i(void* vec)
 {
 	cvector_i* tmp = (cvector_i*)vec;
 	CVEC_FREE(tmp->a);
-	tmp->a = NULL;
 	tmp->size = 0;
 	tmp->capacity = 0;
 }
@@ -1855,14 +1888,11 @@ void cvec_free_d_heap(void* vec)
 	CVEC_FREE(tmp);
 }
 
-/** Frees the internal array and zeros out the members to maintain a
- * consistent state */
+/** Frees the internal array and sets size and capacity to 0 */
 void cvec_free_d(void* vec)
 {
 	cvector_d* tmp = (cvector_d*)vec;
-	CVEC_FREE(tmp->a);
-	tmp->a = NULL;
-	tmp->size = 0;
+	CVEC_FREE(tmp->a); tmp->size = 0;
 	tmp->capacity = 0;
 }
 #endif
@@ -2360,8 +2390,7 @@ void cvec_free_str_heap(void* vec)
 	CVEC_FREE(tmp);
 }
 
-/** Frees the internal array and zeros out the members to maintain a
- * consistent state */
+/** Frees the internal array and sets size and capacity to 0 */
 void cvec_free_str(void* vec)
 {
 	cvec_sz i;
@@ -2371,7 +2400,6 @@ void cvec_free_str(void* vec)
 	}
 	
 	CVEC_FREE(tmp->a);
-	tmp->a = NULL;
 	tmp->size = 0;
 	tmp->capacity = 0;
 }
@@ -2395,7 +2423,7 @@ cvec_sz CVEC_VOID_START_SZ = 20;
  *
  * For example if you passed in sizeof(char*) for elem_sz, and wrappers around the standard free(void*)
  * function for elem_free and CVEC_STRDUP for elem_init you could
- * make cvector_void work *almost* exactly like cvector_str.  The main difference is cvector_str does not
+ * make vector work *almost* exactly like cvector_str.  The main difference is cvector_str does not
  * check for failure of CVEC_STRDUP while cvector_void does check for failure of elem_init.  The other
  * minor differences are popm and replacem are macros in cvector_str (and the latter returns the result
  * rather than using a double pointer return parameter) and depending on how you defined elem_init
@@ -3016,8 +3044,7 @@ void cvec_free_void_heap(void* vec)
 	CVEC_FREE(tmp);
 }
 
-/** Frees the internal array and sets it, size, and capacity to NULL/0 to
- * maintain a consistent state */
+/** Frees the internal array and sets size and capacity to 0 */
 void cvec_free_void(void* vec)
 {
 	cvec_sz i;
@@ -3029,7 +3056,7 @@ void cvec_free_void(void* vec)
 	}
 
 	CVEC_FREE(tmp->a);
-	tmp->a = NULL;
+
 	tmp->size = 0;
 	tmp->capacity = 0;
 }
@@ -3071,13 +3098,10 @@ malloc when given a NULL pointer.  With cvector_void you still have to set
 elem_size, and optionally elem_free/elem_init. See the zero_init_x_test()'s
 in cvector_tests.c for example of that use.
 
-The `cvec_sz` type defaults to `size_t` but you can define CVEC_SIZE_T to your
-preferred type before including the header which in turn is then `typedef`'d
-to `cvec_sz`.  It has to be defined before every header inclusion.  Note, if
-you use a signed type, passing a negative value is undefined behavior
-(ie it'll likely crash immediately).  Of course if you passed a negative while
-using the default `size_t` you'd probably crash anyway as it would wrap around
-to a problematically large number.
+The `cvec_sz` type defaults to size_t but if you define CVEC_SIZE_T before including
+the header which is then `typedef`'d to `cvec_sz`.  It has to be defined before
+every header inclusion since it is used in both the header (struct definiton)
+and the implementation.
 
 There are also 2 templates, one for basic types and one for types that contain
 dynamically allocated memory and you might want a free and/or init function.
@@ -3194,7 +3218,7 @@ action and how it should behave, look at cvector_tests.c
 \section LICENSE
 CVector is licensed under the MIT License.
 
-Copyright (c) 2011-2025 Robert Winkler
+Copyright (c) 2011-2023 Robert Winkler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -3216,4 +3240,891 @@ IN THE SOFTWARE.
 #endif
 
 
+#endif
+
+
+#define RESIZE(x) ((x+1)*2)
+
+
+
+#include <time.h>
+
+#define SIZE_STR_BUF 16
+#define MOD_STR_BUF 24
+
+// TODO struct packing?  save a few bytes?
+typedef struct file
+{
+	char* path;   // could be url;
+
+	// time_t is a long int ...
+	time_t modified;
+	int size;     // in bytes (hard to believe it'd be bigger than ~2.1 GB)
+
+	//  caching for list mode
+	char mod_str[MOD_STR_BUF];
+	char size_str[SIZE_STR_BUF];
+	char* name;  // pointing at filename in path
+} file;
+
+CVEC_NEW_DECLS2(file)
+
+void free_file(void* f);
+
+// comparison functions
+int filename_cmp_lt(const void* a, const void* b);
+int filename_cmp_gt(const void* a, const void* b);
+
+int filepath_cmp_lt(const void* a, const void* b);
+int filepath_cmp_gt(const void* a, const void* b);
+
+int filesize_cmp_lt(const void* a, const void* b);
+int filesize_cmp_gt(const void* a, const void* b);
+
+int filemodified_cmp_lt(const void* a, const void* b);
+int filemodified_cmp_gt(const void* a, const void* b);
+
+#endif
+
+
+#ifndef FILE_TYPE_STR
+#define FILE_TYPE_STR "Match Exts"
+#endif
+
+#define TRUE 1
+#define FALSE 0
+
+#ifndef FB_LOG
+#define FB_LOG(A, ...) printf(A, __VA_ARGS__)
+#endif
+
+#define STRBUF_SZ 512
+#define MAX_PATH_LEN STRBUF_SZ
+#define PATH_SEPARATOR '/'
+
+typedef int (*recents_func)(cvector_str* recents, void * userdata);
+typedef int (*cmp_func)(const void* a, const void* b);
+enum { NAME_UP, NAME_DOWN, SIZE_UP, SIZE_DOWN, MODIFIED_UP, MODIFIED_DOWN };
+
+// TODO name? file_explorer? selector?
+typedef struct file_browser
+{
+	char dir[MAX_PATH_LEN];   // cur location
+	char file[MAX_PATH_LEN];  // return "value" ie file selected 
+
+	// special bookmarked locations
+	char home[MAX_PATH_LEN];
+	char desktop[MAX_PATH_LEN];
+
+	// searching
+	char text_buf[STRBUF_SZ];
+	int text_len;
+
+	recents_func get_recents;
+	void* userdata;
+
+	// bools
+	int is_recents;
+	int is_search_results;
+	int is_text_path; // could change to flag if I add a third option
+	int list_setscroll;
+	int show_hidden;
+	int select_dir;
+
+	// does not own memory
+	const char** exts;
+	int num_exts;
+	int ignore_exts; // if true, show all files, not just matching exts
+
+	// list of files in cur directory
+	cvector_file files;
+
+	cvector_i search_results;
+	int selection;
+
+	// Not used internally, only if the user wants to control the
+	// list view see terminal_filebrowser.c
+#ifdef FILE_LIST_SZ
+	int begin;
+	int end;
+#endif
+
+	int sorted_state;
+	cmp_func c_func;
+
+} file_browser;
+
+int init_file_browser(file_browser* browser, const char** exts, int num_exts, const char* start_dir, recents_func r_func, void* userdata);
+void free_file_browser(file_browser* fb);
+void switch_dir(file_browser* fb, const char* dir);
+void handle_recents(file_browser* fb);
+
+void fb_search_filenames(file_browser* fb);
+const char* get_homedir(void);
+int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden, int select_dir);
+char* mydirname(const char* path, char* dirpath);
+char* mybasename(const char* path, char* base);
+void normalize_path(char* path);
+int bytes2str(int bytes, char* buf, int len);
+
+
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+// end FILE_BROWSER_H
+#endif
+
+
+#ifdef FILE_BROWSER_IMPLEMENTATION
+
+
+#define CVECTOR_IMPLEMENTATION
+#define CVEC_ONLY_INT
+#define CVEC_ONLY_STR
+#define CVEC_SIZE_T i64
+#define PRIcv_sz PRIiMAX
+
+// The MIT License (MIT)
+// 
+// Copyright (c) 2017-2024 Robert Winkler
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+// to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+// TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+// CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
+
+
+// The MIT License (MIT)
+// 
+// Copyright (c) 2017-2024 Robert Winkler
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+// to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+// TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+// CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
+// NOTE(rswinkle): string sorting taken from
+// https://github.com/nothings/stb-imv/blob/master/imv.c
+//
+// derived from michael herf's code: http://www.stereopsis.com/strcmp4humans.html
+//
+// Also see GNU strverscmp for similar functionality
+
+// sorts like this:
+//     foo.jpg
+//     foo1.jpg
+//     foo2.jpg
+//     foo10.jpg
+//     foo_1.jpg
+//     food.jpg
+
+// maybe I should just live with "long" and prosper...
+
+
+// use upper, not lower, to get better sorting versus '_'
+// no, use lower not upper, to get sorting that matches explorer
+extern inline char tupper(char b)
+{
+	if (b >= 'A' && b <= 'Z') return b - 'A' + 'a';
+	//if (b >= 'a' && b <= 'z') return b - 'a' + 'A';
+	return b;
+}
+
+extern inline char isnum(char b)
+{
+	if (b >= '0' && b <= '9') return 1;
+	return 0;
+}
+
+extern inline i64 parsenum(char **a_p)
+{
+	char *a = *a_p;
+	i64 result = *a - '0';
+	++a;
+
+	while (isnum(*a)) {
+		// signed integer overflow undefined behavior on very large numbers
+		// do I care about that here?
+		result *= 10;
+		result += *a - '0';
+		++a;
+	}
+
+	*a_p = a-1;
+	return result;
+}
+
+int StringCompare(char *a, char *b)
+{
+   char *orig_a = a, *orig_b = b;
+
+	if (a == b) return 0;
+
+	if (a == NULL) return -1;
+	if (b == NULL) return 1;
+
+	while (*a && *b) {
+
+		i64 a0, b0; // will contain either a number or a letter
+
+		if (isnum(*a) && isnum(*b)) {
+			a0 = parsenum(&a);
+			b0 = parsenum(&b);
+		} else {
+		// if they are mixed number and character, use ASCII comparison
+		// order between them (number before character), not herf's
+		// approach (numbers after everything else). this produces the order:
+		//     foo.jpg
+		//     foo1.jpg
+		//     food.jpg
+		//     foo_.jpg
+		// which I think looks better than having foo_ before food (but
+		// I could be wrong, given how a blank space sorts)
+
+			a0 = tupper(*a);
+			b0 = tupper(*b);
+		}
+
+		if (a0 < b0) return -1;
+		if (a0 > b0) return 1;
+
+		++a;
+		++b;
+	}
+
+	if (*a) return 1;
+	if (*b) return -1;
+
+	{
+		// if strings differ only by leading 0s, use case-insensitive ASCII sort
+		// (note, we should work this out more efficiently by noticing which one changes length first)
+		int z = strcasecmp(orig_a, orig_b);
+		if (z) return z;
+		// if identical case-insensitive, return ASCII sort
+		return strcmp(orig_a, orig_b);
+	}
+}
+
+int StringCompareSort(const void *p, const void *q)
+{
+   return StringCompare(*(char **) p, *(char **) q);
+}
+
+
+
+CVEC_NEW_DEFS2(file, RESIZE)
+
+void free_file(void* f)
+{
+	free(((file*)f)->path);
+}
+
+// comparison functions
+int filename_cmp_lt(const void* a, const void* b)
+{
+	return StringCompare(((file*)a)->name, ((file*)b)->name);
+}
+
+int filename_cmp_gt(const void* a, const void* b)
+{
+	return StringCompare(((file*)b)->name, ((file*)a)->name);
+}
+
+int filepath_cmp_lt(const void* a, const void* b)
+{
+	return StringCompare(((file*)a)->path, ((file*)b)->path);
+}
+
+int filepath_cmp_gt(const void* a, const void* b)
+{
+	return StringCompare(((file*)b)->path, ((file*)a)->path);
+}
+
+int filesize_cmp_lt(const void* a, const void* b)
+{
+	file* f1 = (file*)a;
+	file* f2 = (file*)b;
+	if (f1->size < f2->size)
+		return -1;
+	if (f1->size > f2->size)
+		return 1;
+
+	return 0;
+}
+
+int filesize_cmp_gt(const void* a, const void* b)
+{
+	file* f1 = (file*)a;
+	file* f2 = (file*)b;
+	if (f1->size > f2->size)
+		return -1;
+	if (f1->size < f2->size)
+		return 1;
+
+	return 0;
+}
+
+int filemodified_cmp_lt(const void* a, const void* b)
+{
+	file* f1 = (file*)a;
+	file* f2 = (file*)b;
+	if (f1->modified < f2->modified)
+		return -1;
+	if (f1->modified > f2->modified)
+		return 1;
+
+	return 0;
+}
+
+int filemodified_cmp_gt(const void* a, const void* b)
+{
+	file* f1 = (file*)a;
+	file* f2 = (file*)b;
+	if (f1->modified > f2->modified)
+		return -1;
+	if (f1->modified < f2->modified)
+		return 1;
+
+	return 0;
+}
+
+
+// pulls in file and cvector
+
+
+#include <stdio.h>
+#include <ctype.h>
+
+// for realpath/_fullpath
+#include <stdlib.h>
+
+//POSIX (mostly) works with MinGW64
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+
+// for getuid
+#include <unistd.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#define myrealpath(A, B) _fullpath(B, A, 0)
+#else
+// for getpwuid
+#include <pwd.h>
+
+#define myrealpath(A, B) realpath(A, B)
+#endif
+
+
+const char* get_homedir(void)
+{
+	const char* home = getenv("HOME");
+#ifdef _WIN32
+	if (!home) home = getenv("USERPROFILE");
+#else
+	if (!home) home = getpwuid(getuid())->pw_dir;
+#endif
+	return home;
+}
+
+// TODO pass extensions?
+int init_file_browser(file_browser* browser, const char** exts, int num_exts, const char* start_dir, recents_func r_func, void* userdata)
+{
+	memset(browser, 0, sizeof(file_browser));
+	
+	const char* home = get_homedir();
+
+	size_t l = 0;
+	strncpy(browser->home, home, MAX_PATH_LEN);
+#ifdef _WIN32
+	normalize_path(browser->home);
+#endif
+	browser->home[MAX_PATH_LEN - 1] = 0;
+
+	home = browser->home;
+	const char* sd = home;
+	if (start_dir) {
+		l = strlen(start_dir);
+		struct stat file_stat;
+		if (stat(start_dir, &file_stat)) {
+			perror("Could not stat start_dir, will use home directory");
+		} else if (l >= MAX_PATH_LEN) {
+			fprintf(stderr, "start_dir path too long, will use home directory\n");
+		} else {
+			sd = start_dir;
+		}
+	}
+	snprintf(browser->dir, MAX_PATH_LEN, "%s", sd);
+	// cut off trailing '/'
+	if (l > 1 && sd[l-1] == '/') {
+		browser->dir[l-1] = 0;
+	}
+
+	// TODO snprintf instead of strncpy everywhere?
+	strcpy(browser->desktop, browser->home);
+	l = strlen(browser->desktop);
+	strcpy(browser->desktop + l, "/Desktop");
+
+	browser->files.elem_free = free_file;
+
+#ifdef FILE_LIST_SZ
+	browser->end = FILE_LIST_SZ;
+#endif
+
+	browser->exts = exts;
+	browser->num_exts = num_exts;
+
+	fb_scandir(&browser->files, browser->dir, exts, num_exts, 0, 0);
+
+	qsort(browser->files.a, browser->files.size, sizeof(file), filename_cmp_lt);
+	browser->sorted_state = NAME_UP;
+	browser->c_func = filename_cmp_lt;
+
+	browser->get_recents = r_func;
+	browser->userdata = userdata;
+
+	return 1;
+}
+
+void reset_file_browser(file_browser* fb, char* start_dir)
+{
+	assert(fb->home[0]);
+	assert(fb->dir[0]);
+	assert(fb->desktop[0]);
+	assert(fb->files.elem_free == free_file);
+
+	// clear vectors and prior selection
+	fb->is_search_results = FALSE;
+	fb->select_dir = FALSE;
+	fb->file[0] = 0;
+	fb->text_len = 0;
+	fb->text_buf[0] = 0;
+
+	// TODO do we want to keep the old value?  I feel like not
+	fb->ignore_exts = FALSE;
+
+	// set start dir
+	size_t l = 0;
+	const char* sd = fb->dir;
+	if (start_dir) {
+		struct stat file_stat;
+		if (stat(start_dir, &file_stat)) {
+			perror("Could not stat start_dir, will use last directory");
+		} else if (l >= MAX_PATH_LEN) {
+			fprintf(stderr, "start_dir path too long, will use last directory\n");
+		} else {
+			sd = start_dir;
+			cvec_clear_file(&fb->files);
+			cvec_clear_i(&fb->search_results);
+			snprintf(fb->dir, MAX_PATH_LEN, "%s", sd);
+			l = strlen(start_dir);
+		}
+	}
+	// cut off trailing '/'
+	if (l > 1 && sd[l-1] == '/') {
+		fb->dir[l-1] = 0;
+	}
+
+	// scan and sort
+	fb_scandir(&fb->files, fb->dir, fb->exts, fb->num_exts, fb->show_hidden, fb->select_dir);
+
+	qsort(fb->files.a, fb->files.size, sizeof(file), filename_cmp_lt);
+	fb->sorted_state = NAME_UP;
+	fb->c_func = filename_cmp_lt;
+}
+
+void free_file_browser(file_browser* fb)
+{
+	cvec_free_file(&fb->files);
+	cvec_free_i(&fb->search_results);
+	memset(fb, 0, sizeof(file_browser));
+}
+
+void handle_recents(file_browser* fb)
+{
+	file f;
+	struct stat file_stat;
+	struct tm* tmp_tm;
+	char* sep;
+	char* ext = NULL;
+
+	cvector_str recents = {0};
+	int n = fb->get_recents(&recents, fb->userdata);
+
+	fb->is_recents = TRUE;
+	fb->dir[0] = 0;
+	cvec_clear_file(&fb->files);
+	fb->selection = 0;
+
+	const char** exts = fb->exts;
+	const int num_exts = fb->num_exts;
+
+	char* p;
+	int i, j;
+	for (i=0; i<n; i++) {
+		p = recents.a[i];
+
+		if (!fb->ignore_exts && num_exts) {
+			if ((ext = strrchr(p, '.'))) {
+				for (j=0; j<num_exts; ++j) {
+					if (!strcasecmp(ext, exts[j]))
+						break;
+				}
+				if (j == num_exts) {
+					//free(p);
+					continue;
+				}
+			}
+		}
+		if (stat(p, &file_stat)) {
+			perror("stat");
+			//free(p);
+		} else {
+			f.size = S_ISREG(file_stat.st_mode) ? file_stat.st_size : -1;
+			f.path = p;
+			f.modified = file_stat.st_mtime;
+
+			bytes2str(f.size, f.size_str, SIZE_STR_BUF);
+			tmp_tm = localtime(&f.modified);
+			strftime(f.mod_str, MOD_STR_BUF, "%Y-%m-%d %H:%M:%S", tmp_tm); // %F %T
+
+
+			sep = strrchr(f.path, PATH_SEPARATOR); // TODO test on windows but I think I normalize
+			f.name = (sep) ? sep+1 : f.path;
+
+			cvec_pushm_file(&fb->files, &f);
+
+			// NULL out pointer in recents string since we moved ownership of
+			// the path string to fb->files and don't want a heap use after free
+			recents.a[i] = 0;
+		}
+	}
+
+	qsort(fb->files.a, fb->files.size, sizeof(file), fb->c_func);
+	fb->list_setscroll = TRUE;
+
+	FB_LOG("Found %"PRIcv_sz" recent files\n", fb->files.size);
+
+	cvec_free_str(&recents);
+}
+
+
+void fb_search_filenames(file_browser* fb)
+{
+	// fast enough to do here?  I do it in events?
+	char* text = fb->text_buf;
+	text[fb->text_len] = 0;
+	
+	FB_LOG("Final text = \"%s\"\n", text);
+
+	// strcasestr is causing problems on windows
+	// so just convert to lower before using strstr
+	char lowertext[STRBUF_SZ] = { 0 };
+	char lowername[STRBUF_SZ] = { 0 };
+
+	// start at 1 to cut off '/'
+	for (int i=0; text[i]; ++i) {
+		lowertext[i] = tolower(text[i]);
+	}
+
+	cvector_file* files = &fb->files;
+
+	// it'd be kind of cool to add results of multiple searches together if we leave this out
+	// of course there might be duplicates.  Or we could make it search within the existing
+	// search results, so consecutive searches are && together...
+	fb->search_results.size = 0;
+	
+	int j;
+	for (int i=0; i<files->size; ++i) {
+
+		for (j=0; files->a[i].name[j]; ++j) {
+			lowername[j] = tolower(files->a[i].name[j]);
+		}
+		lowername[j] = 0;
+
+		// searching name since I'm showing names not paths in the list
+		if (strstr(lowername, lowertext)) {
+			FB_LOG("Adding %s\n", files->a[i].path);
+			cvec_push_i(&fb->search_results, i);
+		}
+	}
+	FB_LOG("found %d matches\n", (int)fb->search_results.size);
+}
+
+// Enough arguments now that I'm thinking of just passing file_browser* and accessing them as members
+int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden, int select_dir)
+{
+	assert(!num_exts || exts);
+
+	char fullpath[STRBUF_SZ] = { 0 };
+	struct stat file_stat;
+	struct dirent* entry;
+	int ret, i=0;
+	DIR* dir;
+	struct tm* tmp_tm;
+
+	cvec_clear_file(files);
+
+	dir = opendir(dirpath);
+	if (!dir) {
+		perror("opendir");
+		return 0;
+	}
+
+	char* tmp;
+	char* sep;
+	char* ext = NULL;
+	file f;
+	
+	// This is to turn windows drives like C:/ into C: so the fullpath below doesn't become C://subdir
+	// Can't remove the / before caling opendir or it won't work
+	int l = strlen(dirpath);
+	const char* fmt_strs[] = { "%s/%s", "%s%s" };
+	int has_ts = dirpath[l-1] == '/';
+
+	while ((entry = readdir(dir))) {
+
+		// faster than 2 strcmp calls? always ignore "." and ".." and all . files unless show_hidden
+		if (entry->d_name[0] == '.' && ((!entry->d_name[1] || (entry->d_name[1] == '.' && !entry->d_name[2])) || !show_hidden)) {
+			continue;
+		}
+
+		ret = snprintf(fullpath, STRBUF_SZ, fmt_strs[has_ts], dirpath, entry->d_name);
+		if (ret >= STRBUF_SZ) {
+			// path too long
+			assert(ret >= STRBUF_SZ);
+			return 0;
+		}
+		if (stat(fullpath, &file_stat)) {
+			FB_LOG("%s\n", fullpath);
+			perror("stat");
+			continue;
+		}
+
+		if (!S_ISREG(file_stat.st_mode) && !S_ISDIR(file_stat.st_mode)) {
+			continue;
+		}
+
+		if (S_ISREG(file_stat.st_mode)) {
+			if (select_dir) {
+				continue;
+			}
+			f.size = file_stat.st_size;
+
+			ext = strrchr(entry->d_name, '.');
+
+			// TODO
+			if (ext && num_exts)
+			{
+				for (i=0; i<num_exts; ++i) {
+					if (!strcasecmp(ext, exts[i]))
+						break;
+				}
+				if (i == num_exts)
+					continue;
+			}
+		} else {
+			f.size = -1;
+		}
+
+		tmp = myrealpath(fullpath, NULL);
+		f.path = realloc(tmp, strlen(tmp)+1);
+#ifdef _WIN32
+		normalize_path(f.path);
+#endif
+
+		f.modified = file_stat.st_mtime;
+
+		// f.size set above separately for files vs directories
+		bytes2str(f.size, f.size_str, SIZE_STR_BUF);
+		tmp_tm = localtime(&f.modified);
+		strftime(f.mod_str, MOD_STR_BUF, "%Y-%m-%d %H:%M:%S", tmp_tm); // %F %T
+		sep = strrchr(f.path, PATH_SEPARATOR); // TODO test on windows but I think I normalize
+		f.name = (sep) ? sep+1 : f.path;
+		cvec_push_file(files, &f);
+	}
+
+	FB_LOG("Found %"PRIcv_sz" files in %s\n", files->size, dirpath);
+
+	closedir(dir);
+	return 1;
+}
+
+// works same as SUSv2 libgen.h dirname except that
+// dirpath is user provided output buffer, assumed large
+// enough, return value is dirpath
+char* mydirname(const char* path, char* dirpath)
+{
+	if (!path || !path[0]) {
+		dirpath[0] = '.';
+		dirpath[1] = 0;
+		return dirpath;
+	}
+
+	// TODO doesn't correctly handle "/" "/hello" or anything that ends in a '/' like
+	// "/some/random/dir/"
+	char* last_slash = strrchr(path, PATH_SEPARATOR);
+	if (last_slash) {
+		strncpy(dirpath, path, last_slash-path);
+		dirpath[last_slash-path] = 0;
+	} else {
+		dirpath[0] = '.';
+		dirpath[1] = 0;
+	}
+
+	return dirpath;
+}
+
+// same as SUSv2 basename in libgen.h except base is output
+// buffer
+char* mybasename(const char* path, char* base)
+{
+	if (!path || !path[0]) {
+		base[0] = '.';
+		base[1] = 0;
+		return base;
+	}
+
+	int end = strlen(path) - 1;
+
+	if (path[end] == PATH_SEPARATOR)
+		end--;
+
+	int start = end;
+	while (path[start] != PATH_SEPARATOR && start != 0)
+		start--;
+	if (path[start] == PATH_SEPARATOR)
+		start++;
+
+	memcpy(base, &path[start], end-start+1);
+	base[end-start+1] = 0;
+
+	return base;
+}
+
+//stupid windows
+void normalize_path(char* path)
+{
+	if (path) {
+		for (int i=0; path[i]; ++i) {
+			if (path[i] == '\\') {
+				path[i] = '/';
+			}
+		}
+	}
+}
+
+int bytes2str(int bytes, char* buf, int len)
+{
+	// empty string for negative numbers
+	if (bytes < 0) {
+		buf[0] = 0;
+		return 1;
+	}
+
+	// MiB KiB? 2^10, 2^20?
+	// char* iec_sizes[3] = { "bytes", "KiB", "MiB" };
+	char* si_sizes[3] = { "bytes", "KB", "MB" }; // GB?  no way
+
+	char** sizes = si_sizes;
+	int i = 0;
+	double sz = bytes;
+	if (sz >= 1000000) {
+		sz /= 1000000;
+		i = 2;
+	} else if (sz >= 1000) {
+		sz /= 1000;
+		i = 1;
+	} else {
+		i = 0;
+	}
+
+	int ret = snprintf(buf, len, ((i) ? "%.1f %s" : "%.0f %s") , sz, sizes[i]);
+	if (ret >= len)
+		return 0;
+
+	return 1;
+}
+
+
+void switch_dir(file_browser* fb, const char* dir)
+{
+	if (dir) {
+		if (!strncmp(fb->dir, dir, MAX_PATH_LEN)) {
+			FB_LOG("No need to switch to %s\n", dir);
+			return;
+		}
+		strncpy(fb->dir, dir, MAX_PATH_LEN);
+	}
+
+	fb->is_recents = FALSE;
+	fb->is_search_results = FALSE;
+	fb->text_buf[0] = 0;
+	fb->text_len = 0;
+
+	FB_LOG("switching to '%s'\n", fb->dir);
+#ifndef _WIN32
+	fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts, fb->show_hidden, fb->select_dir);
+#else
+	if (fb->dir[1]) {
+		fb_scandir(&fb->files, fb->dir, fb->exts, (fb->ignore_exts) ? 0 : fb->num_exts, fb->show_hidden, fb->select_dir);
+	} else {
+		// have to handle "root" special on windows since it doesn't have a unified filesystem
+		// like *nix
+		char buf[STRBUF_SZ];
+		cvec_clear_file(&fb->files);
+		int sz = GetLogicalDriveStrings(sizeof(buf), buf);
+		file f = {0};
+		f.size = -1;
+		if (sz > 0) {
+			char* p = buf, *p2;
+			while (*p && (p2 = strchr(p, 0))) {
+				p[2] = '/'; // change \ to / so "C:/" instead of "C:\"
+
+				f.path = strdup(p);
+				f.name = f.path;
+				cvec_push_file(&fb->files, &f);
+
+				p = p2+1;
+			}
+		} else {
+			DWORD err = GetLastError();
+			FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, 0, err, 0, buf, sizeof(buf), 0);
+			FB_LOG("Error getting drive names: %s\n", buf);
+		}
+	}
+#endif
+	qsort(fb->files.a, fb->files.size, sizeof(file), fb->c_func);
+	fb->list_setscroll = TRUE;
+	fb->selection = 0;
+
+#ifdef FILE_LIST_SZ
+	fb->begin = 0;
+#endif
+}
+#undef CVECTOR_IMPLEMENTATION
+#undef FILE_BROWSER_IMPLEMENTATION
 #endif
