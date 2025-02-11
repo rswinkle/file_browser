@@ -1,5 +1,5 @@
-#ifndef FILE_BROWSER_H
-#define FILE_BROWSER_H
+#ifndef FILEBROWSER_H
+#define FILEBROWSER_H
 
 
 // pulls in cvector
