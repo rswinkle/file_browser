@@ -20,7 +20,7 @@ terminal_fb: terminal_filebrowser.c c_utils.c filebrowser.c file.c
 	$(CC) $(OPTS) terminal_filebrowser.c c_utils.c filebrowser.c file.c -o terminal_fb $(CFLAGS)
 
 terminal_fb2: terminal_filebrowser2.c
-	$(CC) $(OPTS) terminal_filebrowser2.c-o terminal_fb2 $(CFLAGS)
+	$(CC) $(OPTS) terminal_filebrowser2.c c_utils.c -o terminal_fb2 $(CFLAGS)
 
 clean:
 	rm *.o terminal_fb nuklear_fb terminal_fb2 nuklear_fb2
