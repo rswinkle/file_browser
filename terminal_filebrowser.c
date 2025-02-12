@@ -1,8 +1,8 @@
 
 #define FILE_LIST_SZ 20
 #define FILE_TYPE_STR "Images"
-#define CVECTOR_IMPLEMENTATION
-#include "filebrowser.h"
+#define FILE_BROWSER_IMPLEMENTATION
+#include "file_browser.h"
 
 #include "myinttypes.h"
 #include "c_utils.h"
@@ -26,7 +26,7 @@ cvector_str list1;
 //cvector_i selected;
 cvector_file files;
 
-void print_browser(file_browser* fb);
+int print_browser(file_browser* fb);
 
 
 
@@ -69,20 +69,23 @@ int main(int argc, char** argv)
 	init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, NULL, NULL);
 
 	while (!browser.file[0]) {
-		print_browser(&browser);
+		if (!print_browser(&browser)) break;
 	}
 
-	printf("You selected %s\n", browser.file);
+	if (browser.file[0]) {
+		printf("Selected: %s\n", browser.file);
+	} else {
+		printf("No file selected\n");
+	}
 
-
-
+	free_file_browser(&browser);
 
 
 	return 0;
 }
 
 
-void print_browser(file_browser* fb)
+int print_browser(file_browser* fb)
 {
 	cvector_file* f = &fb->files;
 
@@ -95,7 +98,8 @@ void print_browser(file_browser* fb)
 	printf("There are %"PRIcv_sz" files\n", f->size);
 	puts("N. Sort by name");
 	puts("Z. Sort by size");
-	puts("M. Sort by last modified\n");
+	puts("M. Sort by last modified");
+	puts("Q. Quit/Exit\n");
 
 	int invalid = 0;
 
@@ -109,6 +113,10 @@ void print_browser(file_browser* fb)
 	char line_buf[STRBUF_SZ];
 
 	char choice = read_char(stdin, SPACE_SET, 0, 1);
+	if (choice == 'q' || choice == 'Q') {
+		return 0;
+	}
+
 	if (choice == 'f' || choice == 'F') {
 		int fn = 0;
 		do {
@@ -214,8 +222,9 @@ void print_browser(file_browser* fb)
 		}
 	}
 
-
+	return 1;
 }
+
 
 
 

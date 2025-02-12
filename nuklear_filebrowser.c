@@ -2,12 +2,11 @@
 #define CLNK_IMPLEMENTATION
 #include "clnk.h"
 
-#define FILE_LIST_SZ 20
 #define FILE_TYPE_STR "Images"
-#define CVECTOR_IMPLEMENTATION
-#include "filebrowser.h"
+#define FILE_BROWSER_IMPLEMENTATION
+#include "file_browser.h"
 
-#include "myinttypes.h"
+//#include "myinttypes.h"
 
 
 #include <stdio.h>
@@ -1016,6 +1015,7 @@ int windows_recents(cvector_str* recents, void* userdata)
 	cvec_free_file(&links);
 	return recents->size;
 }
+
 
 
 
