@@ -230,7 +230,7 @@ int main(int argc, char** argv)
 
 	// TODO MacOS?
 #ifndef _WIN32
-	init_file_browser(&browser, default_exts, 0, start_dir, linux_recents, NULL);
+	init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, linux_recents, NULL);
 #else
 	init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, windows_recents, NULL);
 #endif
@@ -470,6 +470,12 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	static float header_ratios[] = {0.49f, 0.01f, 0.15f, 0.01f, 0.34f };
 	static int splitter_down = 0;
 
+	// TODO "Open Directory", "Open Folder"?
+	const char* open_strs[] = { "Open", "Open Dir" };
+
+#define UP_WIDTH 100
+	float path_szs[2] = { 0, UP_WIDTH };
+
 	int search_flags = NK_EDIT_FIELD | NK_EDIT_SIG_ENTER | NK_EDIT_GOTO_END_ON_ACTIVATE;
 	int text_path_flags = NK_EDIT_SELECTABLE | NK_EDIT_CLIPBOARD | NK_EDIT_AUTO_SELECT;
 
@@ -517,15 +523,15 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			// use no selection to ignore the "Enter" in events so we don't exit
 			// list mode.  Could add state to handle keeping the selection but meh
 			fb->selection = -1;  // no selection among search
-			//nk_edit_unfocus(ctx);
+			nk_edit_unfocus(ctx);
 		}
 
 		// only enable "Open" button if you have a selection
 		if (fb->selection < 0) {
 			nk_widget_disable_begin(ctx);
 		}
-		if (nk_button_label(ctx, "Open")) {
-			if (f->a[fb->selection].size == -1) {
+		if (nk_button_label(ctx, open_strs[fb->select_dir])) {
+			if (f->a[fb->selection].size == -1 && !fb->select_dir) {
 				switch_dir(fb, f->a[fb->selection].path);
 			} else {
 				strncpy(fb->file, f->a[fb->selection].path, MAX_PATH_LEN);
@@ -568,8 +574,9 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 				// method 2
 				// TODO how to make this look like method 3, submit issue/documentation
-				const float path_szs[] = { win_content_rect.w-win_spacing.x-100, 100 };
+				path_szs[0] = win_content_rect.w-win_spacing.x-UP_WIDTH;
 				nk_layout_row(ctx, NK_STATIC, 0, 2, path_szs);
+
 				
 				// method 3
 				/*
@@ -617,7 +624,6 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 						switch_dir(fb, NULL);
 					} else {
 						handle_recents(fb);
-						//fb->get_recents(fb, fb->userdata);
 					}
 				}
 			}
@@ -626,6 +632,10 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			fb->is_text_path = nk_combo(ctx, path_opts, NK_LEN(path_opts), fb->is_text_path, FONT_SIZE, nk_vec2(bounds.w, 300));
 
 			if (nk_checkbox_label(ctx, "Show Hidden", &fb->show_hidden)) {
+				switch_dir(fb, NULL);
+			}
+
+			if (nk_checkbox_label(ctx, "Open Dir", &fb->select_dir)) {
 				switch_dir(fb, NULL);
 			}
 

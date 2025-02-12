@@ -326,9 +326,8 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 
 			ext = strrchr(entry->d_name, '.');
 
-			// TODO
-			if (ext && num_exts)
-			{
+			// NOTE Purposely leaving files with no extension in
+			if (ext && num_exts) {
 				for (i=0; i<num_exts; ++i) {
 					if (!strcasecmp(ext, exts[i]))
 						break;
