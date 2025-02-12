@@ -3,7 +3,7 @@
 ifeq ($(config), release)
 	OPTS:=-std=gnu99 -g -O3 --pedantic-errors
 else
-	OPTS:=-fsanitize=address -fsanitize=undefined -std=gnu99 -g -O0 --pedantic-errors -Wall -Wextra -Wstrict-prototypes
+	OPTS:=-fsanitize=address -fsanitize=undefined -std=gnu99 -g -O0 --pedantic-errors -Wall -Wextra -Wstrict-prototypes -Wunused
 endif
 
 CFLAGS:=-lm

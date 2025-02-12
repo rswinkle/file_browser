@@ -1,8 +1,25 @@
 file_browser
 ============
 
-WIP structures and code to do file browsing/selection with standard features
-like filtering based on extensions, sorting by name/size/modified, standard folders
-bookmarks, recents, etc.  Meant to be adaptable for any GUI system.
+A single header library to do file browsing for file/folder selection in
+C that can be used with any UI system.
 
-The two demos are a terminal UI and a Nuklear GUI program.
+Features:
+
+* Sorting based on file name, size, last modified
+* Filtering based on a provided list of extensions (on/off toggle)
+* Searching the current directory
+* Show/Hide hidden files (beginning with .)
+* Folder selection mode (only show directories)
+* Supports Recent Files (user provided function, see Nuklear Demo)
+* UI library agnostic
+
+The two demos are a terminal UI meant more to be a proof of concept and one
+that uses the [Nuklear GUI library](https://github.com/Immediate-Mode-UI/Nuklear)
+with the SDL_renderer backend that showcases all the features.
+
+Gallery
+=======
+![Nuklear demo](https://raw.githubusercontent.com/rswinkle/file_browser/main/media/Nuklear_filebrowser.png)
+![sphereworld](https://raw.githubusercontent.com/rswinkle/file_browser/main/media/terminal_filebrowser.png)
+

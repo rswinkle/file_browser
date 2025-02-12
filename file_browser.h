@@ -1,7 +1,9 @@
 /*
 
-File Browser 0.90 MIT licensed library for browsing a file system
+File Browser 0.80 MIT licensed library for browsing a file system
+https://github.com/rswinkle/file_browser
 robertwinkler.com
+
 
 Do this:
     #define FILE_BROWSER_IMPLEMENTATION
@@ -9,6 +11,8 @@ before you include this file in *one* C or C++ file to create the implementation
 
 
 TODO NOTES/DOCS/example code
+
+For now see the two example programs in the github repo
 
 
 The MIT License (MIT)
@@ -3914,9 +3918,8 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 
 			ext = strrchr(entry->d_name, '.');
 
-			// TODO
-			if (ext && num_exts)
-			{
+			// NOTE Purposely leaving files with no extension in
+			if (ext && num_exts) {
 				for (i=0; i<num_exts; ++i) {
 					if (!strcasecmp(ext, exts[i]))
 						break;

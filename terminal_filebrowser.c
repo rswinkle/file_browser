@@ -18,26 +18,13 @@
 
 #define NUM_DFLT_EXTS 11
 
-int running;
-
-
-
-cvector_str list1;
-//cvector_i selected;
 cvector_file files;
 
 int print_browser(file_browser* fb);
 
 
-
 int main(int argc, char** argv)
 {
-	printf("sizeof(file) == %d\n", (int)sizeof(file));
-	printf("sizeof(time_t) == %d\n", (int)sizeof(time_t));
-	printf("sizeof(long) == %d\n", (int)sizeof(long));
-
-	printf("homedir = '%s'\n", get_homedir());
-
 	const char* default_exts[NUM_DFLT_EXTS] =
 	{
 		".jpg",
@@ -55,17 +42,13 @@ int main(int argc, char** argv)
 		".psd"
 	};
 
-	running = 1;
-
-	file_browser browser = { 0 };
-	browser.end = 20;
-
 	char* start_dir = NULL;
 	if (argc == 2) {
 		start_dir = argv[1];
 	}
 
-	//init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, gnome_recents, NULL);
+	file_browser browser = { 0 };
+
 	init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, NULL, NULL);
 
 	while (!browser.file[0]) {

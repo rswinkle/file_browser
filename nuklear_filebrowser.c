@@ -93,14 +93,6 @@ int handle_events(file_browser* fb, struct nk_context* ctx);
 
 int main(int argc, char** argv)
 {
-	/* float bg[4]; */
-
-	printf("sizeof(file) == %d\n", (int)sizeof(file));
-	printf("sizeof(time_t) == %d\n", (int)sizeof(time_t));
-	printf("sizeof(long) == %d\n", (int)sizeof(long));
-
-	printf("homedir = '%s'\n", get_homedir());
-
 	/* SDL setup */
 	if (SDL_Init(SDL_INIT_VIDEO) == -1) {
 		printf( "Can't init SDL:  %s\n", SDL_GetError( ) );
@@ -123,9 +115,6 @@ int main(int argc, char** argv)
 		".pic",
 		".psd"
 	};
-
-
-	int running = 1;
 
 	int win_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
 
@@ -240,7 +229,7 @@ int main(int argc, char** argv)
 
 	//struct nk_colorf bg2 = nk_rgb(28,48,62);
 	g->bg = nk_rgb(0,0,0);
-	while (running) {
+	while (1) {
 		//SDL_RenderSetScale(ren, x_scale, y_scale);
 
 		if (handle_events(&browser, g->ctx))
@@ -248,9 +237,8 @@ int main(int argc, char** argv)
 
 		/* GUI */
 		if (!do_filebrowser(&browser, g->ctx, g->scr_w, g->scr_h)) {
-			running = FALSE;
+			break;
 		}
-
 
 		SDL_SetRenderDrawColor(g->ren, g->bg.r, g->bg.g, g->bg.b, g->bg.a);
 		SDL_RenderSetClipRect(g->ren, NULL);
