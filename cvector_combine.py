@@ -67,11 +67,9 @@ shared_impl = """
 
 
 vector_files = [
-	"cvector_glVertex_Array.h",
-	"cvector_glBuffer.h",
-	"cvector_glTexture.h",
-	"cvector_glProgram.h",
-	"cvector_glVertex.h"
+	"cvector_file.h",
+	"cvector_i.h",
+	"cvector_str.h",
 ]
 
 hfile_str = shared_header

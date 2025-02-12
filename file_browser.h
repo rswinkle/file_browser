@@ -1,3 +1,34 @@
+/*
+
+File Browser 0.90 MIT licensed library for browsing a file system
+robertwinkler.com
+
+Do this:
+    #define FILE_BROWSER_IMPLEMENTATION
+before you include this file in *one* C or C++ file to create the implementation.
+
+
+TODO NOTES/DOCS/example code
+
+
+The MIT License (MIT)
+
+Copyright (c) 2017-2025 Robert Winkler
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+
+*/
 
 #ifndef FILE_BROWSER_H
 #define FILE_BROWSER_H
@@ -39,49 +70,9 @@ typedef int64_t i64;
 #define CVEC_ONLY_STR
 #define CVEC_SIZE_T i64
 #define PRIcv_sz PRIiMAX
-/*
-
-CVector 4.1.0 MIT Licensed vector (dynamic array) library in strict C89
-http://www.robertwinkler.com/projects/cvector.html
-http://www.robertwinkler.com/projects/cvector/
-
-Besides the docs and all the Doxygen comments, see cvector_tests.c for
-examples of how to use it or look at any of these other projects for
-more practical examples:
-
-https://github.com/rswinkle/C_Interpreter
-https://github.com/rswinkle/CPIM2
-https://github.com/rswinkle/spelling_game
-https://github.com/rswinkle/c_bigint
-http://portablegl.com/
-
-The MIT License (MIT)
-
-Copyright (c) 2011-2023 Robert Winkler
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-IN THE SOFTWARE.
-*/
-
-
-/* header starts */
 
 #ifndef CVECTOR_H
 #define CVECTOR_H
-
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 
 #if defined(CVEC_ONLY_INT) || defined(CVEC_ONLY_DOUBLE) || defined(CVEC_ONLY_STR) || defined(CVEC_ONLY_VOID)
    #ifndef CVEC_ONLY_INT
@@ -107,6 +98,7 @@ IN THE SOFTWARE.
 #endif
 
 #ifndef CVEC_MALLOC
+#include <stdlib.h>
 #define CVEC_MALLOC(sz)      malloc(sz)
 #define CVEC_REALLOC(p, sz)  realloc(p, sz)
 #define CVEC_FREE(p)         free(p)
@@ -123,10 +115,14 @@ IN THE SOFTWARE.
 #endif
 
 #ifndef CVEC_SIZE_T
+#include <stdlib.h>
 #define CVEC_SIZE_T size_t
 #endif
 
+#ifndef CVEC_SZ
+#define CVEC_SZ
 typedef CVEC_SIZE_T cvec_sz;
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -163,6 +159,7 @@ int cvec_insert_array_i(cvector_i* vec, cvec_sz i, int* a, cvec_sz num);
 int cvec_replace_i(cvector_i* vec, cvec_sz i, int a);
 void cvec_erase_i(cvector_i* vec, cvec_sz start, cvec_sz end);
 int cvec_reserve_i(cvector_i* vec, cvec_sz size);
+#define cvec_shrink_to_fit_i(vec) cvec_set_cap_i((vec), (vec)->size)
 int cvec_set_cap_i(cvector_i* vec, cvec_sz size);
 void cvec_set_val_sz_i(cvector_i* vec, int val);
 void cvec_set_val_cap_i(cvector_i* vec, int val);
@@ -206,6 +203,7 @@ int cvec_insert_array_d(cvector_d* vec, cvec_sz i, double* a, cvec_sz num);
 double cvec_replace_d(cvector_d* vec, cvec_sz i, double a);
 void cvec_erase_d(cvector_d* vec, cvec_sz start, cvec_sz end);
 int cvec_reserve_d(cvector_d* vec, cvec_sz size);
+#define cvec_shrink_to_fit_d(vec) cvec_set_cap_d((vec), (vec)->size)
 int cvec_set_cap_d(cvector_d* vec, cvec_sz size);
 void cvec_set_val_sz_d(cvector_d* vec, double val);
 void cvec_set_val_cap_d(cvector_d* vec, double val);
@@ -261,6 +259,7 @@ void cvec_replace_str(cvector_str* vec, cvec_sz i, char* a, char* ret);
 void cvec_erase_str(cvector_str* vec, cvec_sz start, cvec_sz end);
 void cvec_remove_str(cvector_str* vec, cvec_sz start, cvec_sz end);
 int cvec_reserve_str(cvector_str* vec, cvec_sz size);
+#define cvec_shrink_to_fit_str(vec) cvec_set_cap_str((vec), (vec)->size)
 int cvec_set_cap_str(cvector_str* vec, cvec_sz size);
 void cvec_set_val_sz_str(cvector_str* vec, char* val);
 void cvec_set_val_cap_str(cvector_str* vec, char* val);
@@ -320,6 +319,7 @@ int cvec_replace_void(cvector_void* vec, cvec_sz i, void* a, void* ret);
 void cvec_erase_void(cvector_void* vec, cvec_sz start, cvec_sz end);
 void cvec_remove_void(cvector_void* vec, cvec_sz start, cvec_sz end);
 int cvec_reserve_void(cvector_void* vec, cvec_sz size);
+#define cvec_shrink_to_fit_void(vec) cvec_set_cap_void((vec), (vec)->size)
 int cvec_set_cap_void(cvector_void* vec, cvec_sz size);
 int cvec_set_val_sz_void(cvector_void* vec, void* val);
 int cvec_set_val_cap_void(cvector_void* vec, void* val);
@@ -638,6 +638,7 @@ void cvec_free_void(void* vec);
   {                                                                                         \
     cvector_##TYPE* tmp = (cvector_##TYPE*)vec;                                             \
     CVEC_FREE(tmp->a);                                                                      \
+    tmp->a        = NULL;                                                                   \
     tmp->size     = 0;                                                                      \
     tmp->capacity = 0;                                                                      \
   }
@@ -1207,7 +1208,7 @@ void cvec_free_void(void* vec);
     }                                                                                            \
                                                                                                  \
     CVEC_FREE(tmp->a);                                                                           \
-                                                                                                 \
+    tmp->a        = NULL;                                                                        \
     tmp->size     = 0;                                                                           \
     tmp->capacity = 0;                                                                           \
   }
@@ -1218,7 +1219,151 @@ void cvec_free_void(void* vec);
 #endif
 
 
-#ifdef CVECTOR_IMPLEMENTATION
+#define RESIZE(x) ((x+1)*2)
+
+
+
+#include <time.h>
+
+#define SIZE_STR_BUF 16
+#define MOD_STR_BUF 24
+
+// TODO struct packing?  save a few bytes?
+typedef struct file
+{
+	char* path;   // could be url;
+
+	// time_t is a long int ...
+	time_t modified;
+	int size;     // in bytes (hard to believe it'd be bigger than ~2.1 GB)
+
+	//  caching for list mode
+	char mod_str[MOD_STR_BUF];
+	char size_str[SIZE_STR_BUF];
+	char* name;  // pointing at filename in path
+} file;
+
+CVEC_NEW_DECLS2(file)
+
+void free_file(void* f);
+
+// comparison functions
+int filename_cmp_lt(const void* a, const void* b);
+int filename_cmp_gt(const void* a, const void* b);
+
+int filepath_cmp_lt(const void* a, const void* b);
+int filepath_cmp_gt(const void* a, const void* b);
+
+int filesize_cmp_lt(const void* a, const void* b);
+int filesize_cmp_gt(const void* a, const void* b);
+
+int filemodified_cmp_lt(const void* a, const void* b);
+int filemodified_cmp_gt(const void* a, const void* b);
+
+#endif
+
+
+#ifndef FILE_TYPE_STR
+#define FILE_TYPE_STR "Match Exts"
+#endif
+
+#define TRUE 1
+#define FALSE 0
+
+#ifndef FB_LOG
+#define FB_LOG(A, ...) printf(A, __VA_ARGS__)
+#endif
+
+#define STRBUF_SZ 512
+#define MAX_PATH_LEN STRBUF_SZ
+#define PATH_SEPARATOR '/'
+
+typedef int (*recents_func)(cvector_str* recents, void * userdata);
+typedef int (*cmp_func)(const void* a, const void* b);
+enum { NAME_UP, NAME_DOWN, SIZE_UP, SIZE_DOWN, MODIFIED_UP, MODIFIED_DOWN };
+
+// TODO name? file_explorer? selector?
+typedef struct file_browser
+{
+	char dir[MAX_PATH_LEN];   // cur location
+	char file[MAX_PATH_LEN];  // return "value" ie file selected 
+
+	// special bookmarked locations
+	char home[MAX_PATH_LEN];
+	char desktop[MAX_PATH_LEN];
+
+	// searching
+	char text_buf[STRBUF_SZ];
+	int text_len;
+
+	recents_func get_recents;
+	void* userdata;
+
+	// bools
+	int is_recents;
+	int is_search_results;
+	int is_text_path; // could change to flag if I add a third option
+	int list_setscroll;
+	int show_hidden;
+	int select_dir;
+
+	// does not own memory
+	const char** exts;
+	int num_exts;
+	int ignore_exts; // if true, show all files, not just matching exts
+
+	// list of files in cur directory
+	cvector_file files;
+
+	cvector_i search_results;
+	int selection;
+
+	// Not used internally, only if the user wants to control the
+	// list view see terminal_filebrowser.c
+#ifdef FILE_LIST_SZ
+	int begin;
+	int end;
+#endif
+
+	int sorted_state;
+	cmp_func c_func;
+
+} file_browser;
+
+int init_file_browser(file_browser* browser, const char** exts, int num_exts, const char* start_dir, recents_func r_func, void* userdata);
+void free_file_browser(file_browser* fb);
+void switch_dir(file_browser* fb, const char* dir);
+void handle_recents(file_browser* fb);
+
+void fb_search_filenames(file_browser* fb);
+const char* get_homedir(void);
+int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden, int select_dir);
+char* mydirname(const char* path, char* dirpath);
+char* mybasename(const char* path, char* base);
+void normalize_path(char* path);
+int bytes2str(int bytes, char* buf, int len);
+
+
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+// end FILE_BROWSER_H
+#endif
+
+
+#ifdef FILE_BROWSER_IMPLEMENTATION
+
+
+//#define CVECTOR_IMPLEMENTATION
+//#define CVEC_ONLY_INT
+//#define CVEC_ONLY_STR
+//#define CVEC_SIZE_T i64
+//#define PRIcv_sz PRIiMAX
+//
+//#ifdef CVECTOR_IMPLEMENTATION
 
 #ifndef CVEC_NO_INT
 
@@ -1549,11 +1694,13 @@ void cvec_free_i_heap(void* vec)
 	CVEC_FREE(tmp);
 }
 
-/** Frees the internal array and sets size and capacity to 0 */
+/** Frees the internal array and zeros out the members to maintain a
+ * consistent state */
 void cvec_free_i(void* vec)
 {
 	cvector_i* tmp = (cvector_i*)vec;
 	CVEC_FREE(tmp->a);
+	tmp->a = NULL;
 	tmp->size = 0;
 	tmp->capacity = 0;
 }
@@ -1888,11 +2035,14 @@ void cvec_free_d_heap(void* vec)
 	CVEC_FREE(tmp);
 }
 
-/** Frees the internal array and sets size and capacity to 0 */
+/** Frees the internal array and zeros out the members to maintain a
+ * consistent state */
 void cvec_free_d(void* vec)
 {
 	cvector_d* tmp = (cvector_d*)vec;
-	CVEC_FREE(tmp->a); tmp->size = 0;
+	CVEC_FREE(tmp->a);
+	tmp->a = NULL;
+	tmp->size = 0;
 	tmp->capacity = 0;
 }
 #endif
@@ -2390,7 +2540,8 @@ void cvec_free_str_heap(void* vec)
 	CVEC_FREE(tmp);
 }
 
-/** Frees the internal array and sets size and capacity to 0 */
+/** Frees the internal array and zeros out the members to maintain a
+ * consistent state */
 void cvec_free_str(void* vec)
 {
 	cvec_sz i;
@@ -2400,6 +2551,7 @@ void cvec_free_str(void* vec)
 	}
 	
 	CVEC_FREE(tmp->a);
+	tmp->a = NULL;
 	tmp->size = 0;
 	tmp->capacity = 0;
 }
@@ -2423,7 +2575,7 @@ cvec_sz CVEC_VOID_START_SZ = 20;
  *
  * For example if you passed in sizeof(char*) for elem_sz, and wrappers around the standard free(void*)
  * function for elem_free and CVEC_STRDUP for elem_init you could
- * make vector work *almost* exactly like cvector_str.  The main difference is cvector_str does not
+ * make cvector_void work *almost* exactly like cvector_str.  The main difference is cvector_str does not
  * check for failure of CVEC_STRDUP while cvector_void does check for failure of elem_init.  The other
  * minor differences are popm and replacem are macros in cvector_str (and the latter returns the result
  * rather than using a double pointer return parameter) and depending on how you defined elem_init
@@ -3044,7 +3196,8 @@ void cvec_free_void_heap(void* vec)
 	CVEC_FREE(tmp);
 }
 
-/** Frees the internal array and sets size and capacity to 0 */
+/** Frees the internal array and sets it, size, and capacity to NULL/0 to
+ * maintain a consistent state */
 void cvec_free_void(void* vec)
 {
 	cvec_sz i;
@@ -3056,7 +3209,7 @@ void cvec_free_void(void* vec)
 	}
 
 	CVEC_FREE(tmp->a);
-
+	tmp->a = NULL;
 	tmp->size = 0;
 	tmp->capacity = 0;
 }
@@ -3098,10 +3251,13 @@ malloc when given a NULL pointer.  With cvector_void you still have to set
 elem_size, and optionally elem_free/elem_init. See the zero_init_x_test()'s
 in cvector_tests.c for example of that use.
 
-The `cvec_sz` type defaults to size_t but if you define CVEC_SIZE_T before including
-the header which is then `typedef`'d to `cvec_sz`.  It has to be defined before
-every header inclusion since it is used in both the header (struct definiton)
-and the implementation.
+The `cvec_sz` type defaults to `size_t` but you can define CVEC_SIZE_T to your
+preferred type before including the header which in turn is then `typedef`'d
+to `cvec_sz`.  It has to be defined before every header inclusion.  Note, if
+you use a signed type, passing a negative value is undefined behavior
+(ie it'll likely crash immediately).  Of course if you passed a negative while
+using the default `size_t` you'd probably crash anyway as it would wrap around
+to a problematically large number.
 
 There are also 2 templates, one for basic types and one for types that contain
 dynamically allocated memory and you might want a free and/or init function.
@@ -3218,7 +3374,7 @@ action and how it should behave, look at cvector_tests.c
 \section LICENSE
 CVector is licensed under the MIT License.
 
-Copyright (c) 2011-2023 Robert Winkler
+Copyright (c) 2011-2025 Robert Winkler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -3240,188 +3396,10 @@ IN THE SOFTWARE.
 #endif
 
 
-#endif
-
-
-#define RESIZE(x) ((x+1)*2)
+//#endif
 
 
 
-#include <time.h>
-
-#define SIZE_STR_BUF 16
-#define MOD_STR_BUF 24
-
-// TODO struct packing?  save a few bytes?
-typedef struct file
-{
-	char* path;   // could be url;
-
-	// time_t is a long int ...
-	time_t modified;
-	int size;     // in bytes (hard to believe it'd be bigger than ~2.1 GB)
-
-	//  caching for list mode
-	char mod_str[MOD_STR_BUF];
-	char size_str[SIZE_STR_BUF];
-	char* name;  // pointing at filename in path
-} file;
-
-CVEC_NEW_DECLS2(file)
-
-void free_file(void* f);
-
-// comparison functions
-int filename_cmp_lt(const void* a, const void* b);
-int filename_cmp_gt(const void* a, const void* b);
-
-int filepath_cmp_lt(const void* a, const void* b);
-int filepath_cmp_gt(const void* a, const void* b);
-
-int filesize_cmp_lt(const void* a, const void* b);
-int filesize_cmp_gt(const void* a, const void* b);
-
-int filemodified_cmp_lt(const void* a, const void* b);
-int filemodified_cmp_gt(const void* a, const void* b);
-
-#endif
-
-
-#ifndef FILE_TYPE_STR
-#define FILE_TYPE_STR "Match Exts"
-#endif
-
-#define TRUE 1
-#define FALSE 0
-
-#ifndef FB_LOG
-#define FB_LOG(A, ...) printf(A, __VA_ARGS__)
-#endif
-
-#define STRBUF_SZ 512
-#define MAX_PATH_LEN STRBUF_SZ
-#define PATH_SEPARATOR '/'
-
-typedef int (*recents_func)(cvector_str* recents, void * userdata);
-typedef int (*cmp_func)(const void* a, const void* b);
-enum { NAME_UP, NAME_DOWN, SIZE_UP, SIZE_DOWN, MODIFIED_UP, MODIFIED_DOWN };
-
-// TODO name? file_explorer? selector?
-typedef struct file_browser
-{
-	char dir[MAX_PATH_LEN];   // cur location
-	char file[MAX_PATH_LEN];  // return "value" ie file selected 
-
-	// special bookmarked locations
-	char home[MAX_PATH_LEN];
-	char desktop[MAX_PATH_LEN];
-
-	// searching
-	char text_buf[STRBUF_SZ];
-	int text_len;
-
-	recents_func get_recents;
-	void* userdata;
-
-	// bools
-	int is_recents;
-	int is_search_results;
-	int is_text_path; // could change to flag if I add a third option
-	int list_setscroll;
-	int show_hidden;
-	int select_dir;
-
-	// does not own memory
-	const char** exts;
-	int num_exts;
-	int ignore_exts; // if true, show all files, not just matching exts
-
-	// list of files in cur directory
-	cvector_file files;
-
-	cvector_i search_results;
-	int selection;
-
-	// Not used internally, only if the user wants to control the
-	// list view see terminal_filebrowser.c
-#ifdef FILE_LIST_SZ
-	int begin;
-	int end;
-#endif
-
-	int sorted_state;
-	cmp_func c_func;
-
-} file_browser;
-
-int init_file_browser(file_browser* browser, const char** exts, int num_exts, const char* start_dir, recents_func r_func, void* userdata);
-void free_file_browser(file_browser* fb);
-void switch_dir(file_browser* fb, const char* dir);
-void handle_recents(file_browser* fb);
-
-void fb_search_filenames(file_browser* fb);
-const char* get_homedir(void);
-int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden, int select_dir);
-char* mydirname(const char* path, char* dirpath);
-char* mybasename(const char* path, char* base);
-void normalize_path(char* path);
-int bytes2str(int bytes, char* buf, int len);
-
-
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-// end FILE_BROWSER_H
-#endif
-
-
-#ifdef FILE_BROWSER_IMPLEMENTATION
-
-
-#define CVECTOR_IMPLEMENTATION
-#define CVEC_ONLY_INT
-#define CVEC_ONLY_STR
-#define CVEC_SIZE_T i64
-#define PRIcv_sz PRIiMAX
-
-// The MIT License (MIT)
-// 
-// Copyright (c) 2017-2024 Robert Winkler
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-// to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-// TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-// CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
-
-
-
-// The MIT License (MIT)
-// 
-// Copyright (c) 2017-2024 Robert Winkler
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
-// to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-// 
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-// TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-// CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-// IN THE SOFTWARE.
 
 // NOTE(rswinkle): string sorting taken from
 // https://github.com/nothings/stb-imv/blob/master/imv.c
@@ -4125,6 +4103,5 @@ void switch_dir(file_browser* fb, const char* dir)
 	fb->begin = 0;
 #endif
 }
-#undef CVECTOR_IMPLEMENTATION
 #undef FILE_BROWSER_IMPLEMENTATION
 #endif

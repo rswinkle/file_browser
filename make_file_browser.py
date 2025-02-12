@@ -57,11 +57,11 @@ def replace_user_include_c(s):
     while ret:
         fname = ret[2]
         if fname.endswith(".c"):
-            print("replacing", fname)
+            print("replacing c", fname)
             s = s.replace('#include "{}"'.format(fname), open(fname, 'r').read(), 1)
         else:
             # should have been taken care of in the header portion so eliminate
-            print("replacing", fname)
+            print("replacing c", fname)
             s = s.replace('#include "{}"'.format(fname), '', 1)
 
         ret = find_include(s)
@@ -71,6 +71,16 @@ def replace_user_include_c(s):
 
 if __name__ == "__main__":
     fb_h = open("file_browser.h", "w")
+
+    fb_h.write("/*\n")
+
+    fb_h.write(open("header_docs.txt").read())
+
+    # for now put this here
+    fb_h.write("\n")
+    fb_h.write(open("LICENSE").read())
+
+    fb_h.write("*/\n")
 
     fb_h.write(open_header)
 
@@ -85,16 +95,19 @@ if __name__ == "__main__":
     fb_h.write(close_header)
 
     fb_impl = open("fb_cvector.c", "r").read()
+    #fb_impl = replace_user_includes(fb_impl)
+
     fb_impl += open("file.c", "r").read()
     fb_impl += open("filebrowser.c", "r").read()
 
     fb_impl = replace_user_include_c(fb_impl)
 
     fb_h.write("\n#ifdef FILE_BROWSER_IMPLEMENTATION\n\n")
+    #fb_h.write("\n#define CVECTOR_IMPLEMENTATION\n\n")
     
     fb_h.write(fb_impl)
 
-    fb_h.write("#undef CVECTOR_IMPLEMENTATION\n")
+    #fb_h.write("#undef CVECTOR_IMPLEMENTATION\n")
     fb_h.write("#undef FILE_BROWSER_IMPLEMENTATION\n")
 
     fb_h.write("#endif\n")

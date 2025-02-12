@@ -1,0 +1,11 @@
+
+File Browser 0.90 MIT licensed library for browsing a file system
+robertwinkler.com
+
+Do this:
+    #define FILE_BROWSER_IMPLEMENTATION
+before you include this file in *one* C or C++ file to create the implementation.
+
+
+TODO NOTES/DOCS/example code
+
