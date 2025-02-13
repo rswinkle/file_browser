@@ -90,7 +90,7 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 	fb_scandir(&browser->files, browser->dir, exts, num_exts, 0, 0);
 
 	qsort(browser->files.a, browser->files.size, sizeof(file), filename_cmp_lt);
-	browser->sorted_state = NAME_UP;
+	browser->sorted_state = FB_NAME_UP;
 	browser->c_func = filename_cmp_lt;
 
 	browser->get_recents = r_func;
@@ -142,7 +142,7 @@ void reset_file_browser(file_browser* fb, char* start_dir)
 	fb_scandir(&fb->files, fb->dir, fb->exts, fb->num_exts, fb->show_hidden, fb->select_dir);
 
 	qsort(fb->files.a, fb->files.size, sizeof(file), filename_cmp_lt);
-	fb->sorted_state = NAME_UP;
+	fb->sorted_state = FB_NAME_UP;
 	fb->c_func = filename_cmp_lt;
 }
 
@@ -221,6 +221,33 @@ void handle_recents(file_browser* fb)
 	cvec_free_str(&recents);
 }
 
+// toggles search state on sort_type, if it's not sorted that way ascending
+// it does that, otherwise in does descending
+void fb_sort_toggle(file_browser* fb, int sort_type)
+{
+	// convert FB_NAME/FB_DOWN to FB_NAME_UP/FB_SIZE_UP etc.
+	sort_type *= 2;
+
+	cmp_func cmps[6] = {
+		filename_cmp_lt,
+		filename_cmp_gt,
+		filesize_cmp_lt,
+		filesize_cmp_gt,
+		filemodified_cmp_lt,
+		filemodified_cmp_gt
+	};
+
+	// convert to DOWN variant if already in UP variant
+	sort_type += fb->sorted_state == sort_type;
+
+	qsort(fb->files.a, fb->files.size, sizeof(file), cmps[sort_type]);
+	fb->sorted_state = sort_type;
+	fb->c_func = cmps[sort_type];
+
+	if (fb->is_search_results) {
+		fb_search_filenames(fb);
+	}
+}
 
 void fb_search_filenames(file_browser* fb)
 {

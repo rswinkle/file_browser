@@ -163,33 +163,15 @@ int print_browser(file_browser* fb)
 				break;
 			case 'N':
 			case 'n':
-				if (fb->sorted_state == NAME_UP) {
-					qsort(fb->files.a, fb->files.size, sizeof(file), filename_cmp_gt);
-					fb->sorted_state = NAME_DOWN;
-				} else {
-					qsort(fb->files.a, fb->files.size, sizeof(file), filename_cmp_lt);
-					fb->sorted_state = NAME_UP;
-				}
+				fb_sort_name(fb);
 				break;
 			case 'Z':
 			case 'z':
-				if (fb->sorted_state == SIZE_UP) {
-					qsort(fb->files.a, fb->files.size, sizeof(file), filesize_cmp_gt);
-					fb->sorted_state = SIZE_DOWN;
-				} else {
-					qsort(fb->files.a, fb->files.size, sizeof(file), filesize_cmp_lt);
-					fb->sorted_state = SIZE_UP;
-				}
+				fb_sort_size(fb);
 				break;
 			case 'M':
 			case 'm':
-				if (fb->sorted_state == MODIFIED_UP) {
-					qsort(fb->files.a, fb->files.size, sizeof(file), filemodified_cmp_gt);
-					fb->sorted_state = MODIFIED_DOWN;
-				} else {
-					qsort(fb->files.a, fb->files.size, sizeof(file), filemodified_cmp_lt);
-					fb->sorted_state = MODIFIED_UP;
-				}
+				fb_sort_modified(fb);
 				break;
 
 			default:

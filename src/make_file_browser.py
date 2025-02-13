@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     # for now put this here
     fb_h.write("\n")
-    fb_h.write(open("LICENSE").read())
+    fb_h.write(open("../LICENSE").read())
 
     fb_h.write("*/\n")
 

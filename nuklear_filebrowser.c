@@ -247,14 +247,12 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-
 int handle_events(file_browser* fb, struct nk_context* ctx)
 {
 	SDL_Event e;
 	int sym;
 	int code, sort_timer;
 	int ret = 0;
-	int did_sort = 0;
 	//SDL_Keymod mod_state = SDL_GetModState();
 	
 	cvector_file* f = &fb->files;
@@ -269,53 +267,23 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 			case SORT_NAME:
 				SDL_Log("Starting sort by name\n");
 				sort_timer = SDL_GetTicks();
-				if (fb->sorted_state != NAME_UP) {
-					qsort(f->a, f->size, sizeof(file), filename_cmp_lt);
-					fb->sorted_state = NAME_UP;
-					fb->c_func = filename_cmp_lt;
-				} else {
-					qsort(f->a, f->size, sizeof(file), filename_cmp_gt);
-					fb->sorted_state = NAME_DOWN;
-					fb->c_func = filename_cmp_gt;
-				}
-				did_sort = TRUE;
+				fb_sort_name(fb);
 				SDL_Log("Sort took %d\n", SDL_GetTicks()-sort_timer);
 				break;
 			case SORT_SIZE:
 				SDL_Log("Starting sort by size\n");
 				sort_timer = SDL_GetTicks();
-				if (fb->sorted_state != SIZE_UP) {
-					qsort(f->a, f->size, sizeof(file), filesize_cmp_lt);
-					fb->sorted_state = SIZE_UP;
-					fb->c_func = filesize_cmp_lt;
-				} else {
-					qsort(f->a, f->size, sizeof(file), filesize_cmp_gt);
-					fb->sorted_state = SIZE_DOWN;
-					fb->c_func = filesize_cmp_gt;
-				}
-				did_sort = TRUE;
+				fb_sort_size(fb);
 				SDL_Log("Sort took %d\n", SDL_GetTicks()-sort_timer);
 				break;
 			case SORT_MODIFIED:
 				SDL_Log("Starting sort by modified\n");
 				sort_timer = SDL_GetTicks();
-				if (fb->sorted_state != MODIFIED_UP) {
-					qsort(f->a, f->size, sizeof(file), filemodified_cmp_lt);
-					fb->sorted_state = MODIFIED_UP;
-					fb->c_func = filemodified_cmp_lt;
-				} else {
-					qsort(f->a, f->size, sizeof(file), filemodified_cmp_gt);
-					fb->sorted_state = MODIFIED_DOWN;
-					fb->c_func = filemodified_cmp_gt;
-				}
-				did_sort = TRUE;
+				fb_sort_modified(fb);
 				SDL_Log("Sort took %d\n", SDL_GetTicks()-sort_timer);
 				break;
 			default:
 				SDL_Log("Unknown user event!");
-			}
-			if (did_sort && fb->is_search_results) {
-				fb_search_filenames(fb);
 			}
 			continue;
 		}
@@ -497,7 +465,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 			// use no selection to ignore the "Enter" in events so we don't exit
 			// list mode.  Could add state to handle keeping the selection but meh
-			fb->selection = -1;  // no selection among search
+			fb->selection = -1;  // start with no selection among search
 			nk_edit_unfocus(ctx);
 		}
 
@@ -659,9 +627,9 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			nk_layout_row(ctx, NK_DYNAMIC, 0, 5, header_ratios);
 
 			symbol = NK_SYMBOL_NONE; // 0
-			if (fb->sorted_state == NAME_UP)
+			if (fb->sorted_state == FB_NAME_UP)
 				symbol = NK_SYMBOL_TRIANGLE_UP;
-			else if (fb->sorted_state == NAME_DOWN)
+			else if (fb->sorted_state == FB_NAME_DOWN)
 				symbol = NK_SYMBOL_TRIANGLE_DOWN;
 
 			// TODO name or path?
@@ -690,9 +658,9 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			// I hate redundant logic but the alternative is repeated gui code
 			// TODO think of a better way
 			symbol = NK_SYMBOL_NONE; // 0
-			if (fb->sorted_state == SIZE_UP)
+			if (fb->sorted_state == FB_SIZE_UP)
 				symbol = NK_SYMBOL_TRIANGLE_UP;
-			else if (fb->sorted_state == SIZE_DOWN)
+			else if (fb->sorted_state == FB_SIZE_DOWN)
 				symbol = NK_SYMBOL_TRIANGLE_DOWN;
 
 			if (nk_button_symbol_label(ctx, symbol, "Size", NK_TEXT_LEFT)) {
@@ -718,9 +686,9 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			}
 
 			symbol = NK_SYMBOL_NONE; // 0
-			if (fb->sorted_state == MODIFIED_UP)
+			if (fb->sorted_state == FB_MODIFIED_UP)
 				symbol = NK_SYMBOL_TRIANGLE_UP;
-			else if (fb->sorted_state == MODIFIED_DOWN)
+			else if (fb->sorted_state == FB_MODIFIED_DOWN)
 				symbol = NK_SYMBOL_TRIANGLE_DOWN;
 
 			if (nk_button_symbol_label(ctx, symbol, "Modified", NK_TEXT_LEFT)) {

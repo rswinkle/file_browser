@@ -22,7 +22,8 @@
 
 typedef int (*recents_func)(cvector_str* recents, void * userdata);
 typedef int (*cmp_func)(const void* a, const void* b);
-enum { NAME_UP, NAME_DOWN, SIZE_UP, SIZE_DOWN, MODIFIED_UP, MODIFIED_DOWN };
+enum { FB_NAME_UP, FB_NAME_DOWN, FB_SIZE_UP, FB_SIZE_DOWN, FB_MODIFIED_UP, FB_MODIFIED_DOWN };
+enum { FB_NAME, FB_SIZE, FB_MODIFIED };
 
 // TODO name? file_explorer? selector?
 typedef struct file_browser
@@ -78,6 +79,13 @@ void switch_dir(file_browser* fb, const char* dir);
 void handle_recents(file_browser* fb);
 
 void fb_search_filenames(file_browser* fb);
+
+// TODO think about this
+void fb_sort_toggle(file_browser* fb, int sort_type);
+#define fb_sort_name(fb) fb_sort_toggle((fb), FB_NAME)
+#define fb_sort_size(fb) fb_sort_toggle((fb), FB_SIZE)
+#define fb_sort_modified(fb) fb_sort_toggle((fb), FB_MODIFIED)
+
 const char* get_homedir(void);
 int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int num_exts, int show_hidden, int select_dir);
 char* mydirname(const char* path, char* dirpath);
