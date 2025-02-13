@@ -11,14 +11,17 @@
 #ifndef NK_SDL_RENDERER_H_
 #define NK_SDL_RENDERER_H_
 
-#include <SDL2/SDL.h>
+#ifndef NK_SDL_RENDERER_SDL_H
+#define NK_SDL_RENDERER_SDL_H <SDL.h>
+#endif
+#include NK_SDL_RENDERER_SDL_H
 NK_API struct nk_context*   nk_sdl_init(SDL_Window *win, SDL_Renderer *renderer);
 NK_API void                 nk_sdl_font_stash_begin(struct nk_font_atlas **atlas);
 NK_API void                 nk_sdl_font_stash_end(void);
 NK_API int                  nk_sdl_handle_event(SDL_Event *evt);
 NK_API void                 nk_sdl_render(enum nk_anti_aliasing);
 NK_API void                 nk_sdl_shutdown(void);
-NK_API void                 nk_sdl_scale(float x_scale, float y_scale);
+NK_API void                 nk_sdl_handle_grab(void);
 
 #if SDL_COMPILEDVERSION < SDL_VERSIONNUM(2, 0, 22)
 /* Metal API does not support cliprects with negative coordinates or large
@@ -40,8 +43,8 @@ NK_API void                 nk_sdl_scale(float x_scale, float y_scale);
  * ===============================================================
  */
 #ifdef NK_SDL_RENDERER_IMPLEMENTATION
-
-#include <strings.h>
+#include <string.h>
+#include <stdlib.h>
 
 struct nk_sdl_device {
     struct nk_buffer cmds;
@@ -61,10 +64,8 @@ static struct nk_sdl {
     struct nk_sdl_device ogl;
     struct nk_context ctx;
     struct nk_font_atlas atlas;
+    Uint64 time_of_last_frame;
 } sdl;
-
-static float scale_x;
-static float scale_y;
 
 NK_INTERN void
 nk_sdl_device_upload_atlas(const void *image, int width, int height)
@@ -111,6 +112,11 @@ nk_sdl_render(enum nk_anti_aliasing AA)
             {NK_VERTEX_COLOR, NK_FORMAT_R8G8B8A8, NK_OFFSETOF(struct nk_sdl_vertex, col)},
             {NK_VERTEX_LAYOUT_END}
         };
+
+        Uint64 now = SDL_GetTicks64();
+        sdl.ctx.delta_time_seconds = (float)(now - sdl.time_of_last_frame) / 1000;
+        sdl.time_of_last_frame = now;
+
         NK_MEMSET(&config, 0, sizeof(config));
         config.vertex_layout = vertex_layout;
         config.vertex_size = sizeof(struct nk_sdl_vertex);
@@ -239,6 +245,7 @@ nk_sdl_init(SDL_Window *win, SDL_Renderer *renderer)
 #endif
     sdl.win = win;
     sdl.renderer = renderer;
+    sdl.time_of_last_frame = SDL_GetTicks64();
     nk_init_default(&sdl.ctx, 0);
     sdl.ctx.clip.copy = nk_sdl_clipboard_copy;
     sdl.ctx.clip.paste = nk_sdl_clipboard_paste;
@@ -266,25 +273,26 @@ nk_sdl_font_stash_end(void)
         nk_style_set_font(&sdl.ctx, &sdl.atlas.default_font->handle);
 }
 
+NK_API void
+nk_sdl_handle_grab(void)
+{
+    struct nk_context *ctx = &sdl.ctx;
+    if (ctx->input.mouse.grab) {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    } else if (ctx->input.mouse.ungrab) {
+        /* better support for older SDL by setting mode first; causes an extra mouse motion event */
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+        SDL_WarpMouseInWindow(sdl.win, (int)ctx->input.mouse.prev.x, (int)ctx->input.mouse.prev.y);
+    } else if (ctx->input.mouse.grabbed) {
+        ctx->input.mouse.pos.x = ctx->input.mouse.prev.x;
+        ctx->input.mouse.pos.y = ctx->input.mouse.prev.y;
+    }
+}
+
 NK_API int
 nk_sdl_handle_event(SDL_Event *evt)
 {
     struct nk_context *ctx = &sdl.ctx;
-
-    /* optional grabbing behavior */
-    /* TODO fix bug leading to never ungrabbing
-    if (ctx->input.mouse.grab) {
-        SDL_SetRelativeMouseMode(SDL_TRUE);
-        puts("relative");
-        ctx->input.mouse.grab = 0;
-    } else if (ctx->input.mouse.ungrab) {
-        int x = (int)ctx->input.mouse.prev.x, y = (int)ctx->input.mouse.prev.y;
-        SDL_SetRelativeMouseMode(SDL_FALSE);
-        puts("unrelative");
-        SDL_WarpMouseInWindow(sdl.win, x, y);
-        ctx->input.mouse.ungrab = 0;
-    }
-    */
 
     switch(evt->type)
     {
@@ -334,7 +342,7 @@ nk_sdl_handle_event(SDL_Event *evt)
         case SDL_MOUSEBUTTONDOWN:
             {
                 int down = evt->type == SDL_MOUSEBUTTONDOWN;
-                const int x = evt->button.x/scale_x, y = evt->button.y/scale_y;
+                const int x = evt->button.x, y = evt->button.y;
                 switch(evt->button.button)
                 {
                     case SDL_BUTTON_LEFT:
@@ -349,11 +357,10 @@ nk_sdl_handle_event(SDL_Event *evt)
 
         case SDL_MOUSEMOTION:
             if (ctx->input.mouse.grabbed) {
-                // TODO hmm?
-                int x = (int)ctx->input.mouse.prev.x/scale_x, y = (int)ctx->input.mouse.prev.y/scale_y;
-                nk_input_motion(ctx, x + evt->motion.xrel/scale_x, y + evt->motion.yrel/scale_y);
+                int x = (int)ctx->input.mouse.prev.x, y = (int)ctx->input.mouse.prev.y;
+                nk_input_motion(ctx, x + evt->motion.xrel, y + evt->motion.yrel);
             }
-            else nk_input_motion(ctx, evt->motion.x/scale_x, evt->motion.y/scale_y);
+            else nk_input_motion(ctx, evt->motion.x, evt->motion.y);
             return 1;
 
         case SDL_TEXTINPUT:
@@ -382,13 +389,5 @@ void nk_sdl_shutdown(void)
     nk_buffer_free(&dev->cmds);
     memset(&sdl, 0, sizeof(sdl));
 }
-
-NK_API void
-nk_sdl_scale(float x_scale, float y_scale)
-{
-	scale_x = x_scale;
-	scale_y = y_scale;
-}
-
 
 #endif /* NK_SDL_RENDERER_IMPLEMENTATION */

@@ -93,10 +93,95 @@ int handle_events(file_browser* fb, struct nk_context* ctx);
 
 int main(int argc, char** argv)
 {
+
+	SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 	/* SDL setup */
 	if (SDL_Init(SDL_INIT_VIDEO) == -1) {
-		printf( "Can't init SDL:  %s\n", SDL_GetError( ) );
+		printf( "Error SDL_Init: %s\n", SDL_GetError( ) );
 		return 1;
+	}
+
+	int win_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
+
+	g->win = SDL_CreateWindow("File Selector",
+	                       SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+	                       WINDOW_WIDTH, WINDOW_HEIGHT,
+	                       win_flags);
+
+	if (!g->win) {
+		printf("Error SDL_CreateWindow: %s\n", SDL_GetError());
+		return 1;
+	}
+
+	/* try VSYNC and ACCELERATED */
+	int flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
+	//g->ren = SDL_CreateRenderer(g->win, -1, SDL_RENDERER_SOFTWARE);
+	g->ren = SDL_CreateRenderer(g->win, -1, flags);
+	if (!g->ren) {
+		SDL_Log("Error SDL_CreateRenderer: %s\n", SDL_GetError());
+		return 1;
+	}
+	float font_scale = 1;
+
+    /* scale the renderer output for High-DPI displays */
+    {
+        int render_w, render_h;
+        int window_w, window_h;
+        float scale_x, scale_y;
+        SDL_GetRendererOutputSize(g->ren, &render_w, &render_h);
+        SDL_GetWindowSize(g->win, &window_w, &window_h);
+        scale_x = (float)(render_w) / (float)(window_w);
+        scale_y = (float)(render_h) / (float)(window_h);
+        SDL_RenderSetScale(g->ren, scale_x, scale_y);
+        font_scale = scale_y;
+    }
+
+	if (!(g->ctx = nk_sdl_init(g->win, g->ren))) {
+		SDL_Log("nk_sdl_init() failed!");
+		return 1;
+	}
+
+    /* Load Fonts: if none of these are loaded a default font will be used  */
+    /* Load Cursor: if you uncomment cursor loading please hide the cursor */
+    {
+        struct nk_font_atlas *atlas;
+        struct nk_font_config config = nk_font_config(0);
+        struct nk_font *font;
+
+        /* set up the font atlas and add desired font; note that font sizes are
+         * multiplied by font_scale to produce better results at higher DPIs */
+        nk_sdl_font_stash_begin(&atlas);
+        font = nk_font_atlas_add_default(atlas, 13 * font_scale, &config);
+        /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/DroidSans.ttf", 14 * font_scale, &config);*/
+        /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Roboto-Regular.ttf", 16 * font_scale, &config);*/
+        /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/kenvector_future_thin.ttf", 13 * font_scale, &config);*/
+        /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyClean.ttf", 12 * font_scale, &config);*/
+        /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyTiny.ttf", 10 * font_scale, &config);*/
+        /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Cousine-Regular.ttf", 13 * font_scale, &config);*/
+        nk_sdl_font_stash_end();
+
+        /* this hack makes the font appear to be scaled down to the desired
+         * size and is only necessary when font_scale > 1 */
+        font->handle.height /= font_scale;
+        /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
+        nk_style_set_font(g->ctx, &font->handle);
+    }
+
+    g->scr_w = WINDOW_WIDTH;
+    g->scr_h = WINDOW_HEIGHT;
+
+	// used for GUI button events
+	g->userevent = SDL_RegisterEvents(1);
+	if (g->userevent == (u32)-1) {
+		SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error: %s\n", SDL_GetError());
+		return 1;
+	}
+
+	file_browser browser = { 0 };
+
+	char* start_dir = NULL;
+	if (argc == 2) {
+		start_dir = argv[1];
 	}
 
 	const char* default_exts[NUM_DFLT_EXTS] =
@@ -116,106 +201,6 @@ int main(int argc, char** argv)
 		".psd"
 	};
 
-	int win_flags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE;
-
-	g->win = SDL_CreateWindow("File Selector",
-	                       SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-	                       WINDOW_WIDTH, WINDOW_HEIGHT,
-	                       win_flags);
-
-	if (!g->win) {
-		printf("Can't create window: %s\n", SDL_GetError());
-		return 1;
-	}
-	/* try VSYNC and ACCELERATED */
-	g->ren = SDL_CreateRenderer(g->win, -1, SDL_RENDERER_SOFTWARE);
-	if (!g->ren) {
-		printf("Can't create ren: %s\n", SDL_GetError());
-		return 1;
-	}
-
-	float hdpi, vdpi, ddpi;
-	SDL_GetDisplayDPI(0, &ddpi, &hdpi, &vdpi);
-	printf("DPIs: %.2f %.2f %.2f\n", ddpi, hdpi, vdpi);
-
-	SDL_Rect r;
-	SDL_GetDisplayBounds(0, &r);
-	printf("display bounds: %d %d %d %d\n", r.x, r.y, r.w, r.h);
-
-	g->x_scale = 1; //hdpi/72;  // adjust for dpi, then go from 8pt font to 12pt
-	g->y_scale = 1; //vdpi/72;
-
-	g->userevent = SDL_RegisterEvents(1);
-	if (g->userevent == (u32)-1) {
-		SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Error: %s\n", SDL_GetError());
-		return 0;
-	}
-
-	/*
-	if (SDL_RenderSetLogicalSize(g->ren, WINDOW_WIDTH*g->x_scale, WINDOW_HEIGHT*g->y_scale)) {
-		printf("logical size failure: %s\n", SDL_GetError());
-		return 1;
-	}
-	*/
-
-	if (!(g->ctx = nk_sdl_init(g->win, g->ren))) {
-		printf("nk_sdl_init() failed!");
-		return 1;
-	}
-
-	// TODO Font stuff, refactor/reorganize
-	int render_w, render_h;
-	int window_w, window_h;
-	SDL_GetRendererOutputSize(g->ren, &render_w, &render_h);
-	SDL_GetWindowSize(g->win, &window_w, &window_h);
-	g->x_scale = (float)(render_w) / (float)(window_w);
-	g->y_scale = (float)(render_h) / (float)(window_h);
-	// could adjust for dpi, then adjust for font size if necessary
-	//g->x_scale = 2; //hdpi/72;
-	//g->y_scale = 2; //vdpi/72;
-	//SDL_RenderSetScale(g->ren, g->x_scale, g->y_scale);
-	float font_scale = g->y_scale;
-
-	printf("scale %f %f\n", g->x_scale, g->y_scale);
-	SDL_RenderSetScale(g->ren, g->x_scale, g->y_scale);
-	nk_sdl_scale(g->x_scale, g->y_scale);
-
-	struct nk_font_atlas* atlas;
-	struct nk_font_config config = nk_font_config(0);
-	struct nk_font* font;
-
-	nk_sdl_font_stash_begin(&atlas);
-	font = nk_font_atlas_add_default(atlas, FONT_SIZE*font_scale, &config);
-	//font = nk_font_atlas_add_from_file(atlas, "../fonts/kenvector_future_thin.ttf", 13 * font_scale, &config);
-	nk_sdl_font_stash_end();
-
-	font->handle.height /= font_scale;
-	nk_style_set_font(g->ctx, &font->handle);
-
-	struct nk_style_toggle* tog = &g->ctx->style.option;
-	printf("padding = %f %f border = %f\n", tog->padding.x, tog->padding.y, tog->border);
-	//tog->padding.x = 2;
-	//tog->padding.y = 2;
-
-    static struct nk_color color_table[NK_COLOR_COUNT];
-    memcpy(color_table, nk_default_color_style, sizeof(color_table));
-
-	if (SDL_GetDisplayUsableBounds(0, &r)) {
-		SDL_Log("Error getting usable bounds: %s\n", SDL_GetError());
-		r.w = WINDOW_WIDTH;
-		r.h = WINDOW_HEIGHT;
-	} else {
-		SDL_Log("Usable Bounds: %d %d %d %d\n", r.x, r.y, r.w, r.h);
-	}
-    g->scr_w = WINDOW_WIDTH;
-    g->scr_h = WINDOW_HEIGHT;
-
-	file_browser browser = { 0 };
-
-	char* start_dir = NULL;
-	if (argc == 2) {
-		start_dir = argv[1];
-	}
 
 	// TODO MacOS?
 #ifndef _WIN32
@@ -224,13 +209,11 @@ int main(int argc, char** argv)
 	init_file_browser(&browser, default_exts, NUM_DFLT_EXTS, start_dir, windows_recents, NULL);
 #endif
 
-	// default no no selection
+	// default to no selection
 	browser.selection = -1;
 
-	//struct nk_colorf bg2 = nk_rgb(28,48,62);
 	g->bg = nk_rgb(0,0,0);
 	while (1) {
-		//SDL_RenderSetScale(ren, x_scale, y_scale);
 
 		if (handle_events(&browser, g->ctx))
 			break;
@@ -244,12 +227,9 @@ int main(int argc, char** argv)
 		SDL_RenderSetClipRect(g->ren, NULL);
 		SDL_RenderClear(g->ren);
 
-		SDL_RenderSetScale(g->ren, g->x_scale, g->y_scale);
 		nk_sdl_render(NK_ANTI_ALIASING_ON);
-		SDL_RenderSetScale(g->ren, 1, 1);
 
 		SDL_RenderPresent(g->ren);
-		SDL_Delay(15);
 	}
 
 	if (browser.file[0]) {
@@ -281,9 +261,8 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 
 	nk_input_begin(ctx);
 	while (SDL_PollEvent(&e)) {
-		// TODO edit menu/GUI as appropriate for list mode, see which
-		// actions make sense or are worth supporting (re-evaluate if I
-		// have some sort of preview)
+		// NOTE Could do these events inline in GUI code, would make it require fewer
+		// changes for different backends...
 		if (e.type == g->userevent) {
 			code = e.user.code;
 			switch (code) {
@@ -432,6 +411,10 @@ int handle_events(file_browser* fb, struct nk_context* ctx)
 
 		nk_sdl_handle_event(&e);
 	}
+
+	/* optional grabbing behavior */
+    nk_sdl_handle_grab();
+
 	nk_input_end(g->ctx);
 
 	return ret;
@@ -467,6 +450,10 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	int search_flags = NK_EDIT_FIELD | NK_EDIT_SIG_ENTER | NK_EDIT_GOTO_END_ON_ACTIVATE;
 	int text_path_flags = NK_EDIT_SELECTABLE | NK_EDIT_CLIPBOARD | NK_EDIT_AUTO_SELECT;
 
+	int win_flags = NK_WINDOW_NO_SCROLLBAR;
+	//win_flags |= NK_WINDOW_MOVABLE;
+	//win_flags |= NK_WINDOW_SCALABLE;
+
 	SDL_Event event = { .type = g->userevent };
 
 	cvector_file* f = &fb->files;
@@ -479,7 +466,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	if (!nk_input_is_mouse_down(in, NK_BUTTON_LEFT))
 		splitter_down = 0;
 
-	if (nk_begin(ctx, "File Selector", nk_rect(0, 0, scr_w, scr_h), NK_WINDOW_NO_SCROLLBAR)) {
+	if (nk_begin(ctx, "File Selector", nk_rect(0, 0, scr_w, scr_h), win_flags)) {
 
 		struct nk_rect win_content_rect = nk_window_get_content_region(ctx);
 		struct nk_vec2 win_spacing = ctx->style.window.spacing;
