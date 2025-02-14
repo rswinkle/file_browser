@@ -547,7 +547,8 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 		const float group_szs[] = { SIDEBAR_W, scr_w-SIDEBAR_W };
 
-		nk_layout_row(ctx, NK_STATIC, scr_h, 2, group_szs);
+		bounds = nk_widget_bounds(ctx);
+		nk_layout_row(ctx, NK_STATIC, scr_h-bounds.y, 2, group_szs);
 
 		if (nk_group_begin(ctx, "Sidebar", 0)) {
 
@@ -698,10 +699,8 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 			float ratios[] = { header_ratios[0]+0.01f, header_ratios[2], header_ratios[4]+0.01f };
 			
-			// path_rows is 1 for text mode or >=1 for breadcrumb mode, +2 for
-			// the search bar and the column header buttons
-			nk_layout_row_dynamic(ctx, scr_h-(path_rows+2)*search_height, 1);
-
+			bounds = nk_widget_bounds(ctx);
+			nk_layout_row_dynamic(ctx, scr_h-bounds.y, 1);
 
 			if (fb->is_search_results) {
 				if (!fb->search_results.size) {
