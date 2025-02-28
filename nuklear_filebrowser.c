@@ -423,6 +423,8 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	//win_flags |= NK_WINDOW_SCALABLE;
 
 	SDL_Event event = { .type = g->userevent };
+	SDL_Event scroll_event = { .wheel.type = SDL_MOUSEWHEEL, .wheel.direction = SDL_MOUSEWHEEL_NORMAL };
+
 
 	cvector_file* f = &fb->files;
 
@@ -742,14 +744,18 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 							nk_label(ctx, f->a[i].size_str, NK_TEXT_RIGHT);
 							nk_label(ctx, f->a[i].mod_str, NK_TEXT_RIGHT);
 						}
-						list_height = ctx->current->layout->clip.h; // ->bounds.h?
 						nk_list_view_end(&rview);
 					}
 				}
-				if (fb->list_setscroll && rview.total_height > list_height) {
-					int scroll_limit = rview.total_height - list_height; // little off
-					nk_uint y = (fb->selection/(float)(fb->search_results.size-1) * scroll_limit) + 0.999f;
-					nk_group_set_scroll(ctx, "Result List", 0, y);
+				if (fb->list_setscroll && (fb->selection < rview.begin || fb->selection >= rview.end-2)) {
+					if (!fb->selection) {
+						nk_group_set_scroll(ctx, "Result List", 0, 0);
+					} else if (fb->selection == fb->search_results.size-1 && fb->selection-rview.begin >= rview.count) {
+						nk_group_set_scroll(ctx, "Result List", 0, UINT32_MAX);
+					} else {
+						scroll_event.wheel.y = (fb->selection <= rview.begin) ? 1 : -1;
+						SDL_PushEvent(&scroll_event);
+					}
 					fb->list_setscroll = FALSE;
 				}
 			} else {
@@ -776,14 +782,18 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 						nk_label(ctx, f->a[i].size_str, NK_TEXT_RIGHT);
 						nk_label(ctx, f->a[i].mod_str, NK_TEXT_RIGHT);
 					}
-					list_height = ctx->current->layout->clip.h; // ->bounds.h?
 					nk_list_view_end(&lview);
 				}
 
-				if (fb->list_setscroll && lview.total_height > list_height) {
-					int scroll_limit = lview.total_height - list_height; // little off
-					nk_uint y = (fb->selection/(float)(f->size-1) * scroll_limit) + 0.999f;
-					nk_group_set_scroll(ctx, "File List", 0, y);
+				if (fb->list_setscroll && (fb->selection < lview.begin || fb->selection >= lview.end-2)) {
+					if (!fb->selection) {
+						nk_group_set_scroll(ctx, "File List", 0, 0);
+					} else if (fb->selection == f->size-1 && fb->selection-lview.begin >= lview.count) {
+						nk_group_set_scroll(ctx, "File List", 0, UINT32_MAX);
+					} else {
+						scroll_event.wheel.y = (fb->selection <= lview.begin) ? 1 : -1;
+						SDL_PushEvent(&scroll_event);
+					}
 					fb->list_setscroll = FALSE;
 				}
 			}
