@@ -151,7 +151,7 @@ int main(int argc, char** argv)
         /* set up the font atlas and add desired font; note that font sizes are
          * multiplied by font_scale to produce better results at higher DPIs */
         nk_sdl_font_stash_begin(&atlas);
-        font = nk_font_atlas_add_default(atlas, 13 * font_scale, &config);
+        font = nk_font_atlas_add_default(atlas, FONT_SIZE * font_scale, &config);
         /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/DroidSans.ttf", 14 * font_scale, &config);*/
         /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Roboto-Regular.ttf", 16 * font_scale, &config);*/
         /*font = nk_font_atlas_add_from_file(atlas, "../../../extra_font/kenvector_future_thin.ttf", 13 * font_scale, &config);*/
@@ -399,8 +399,13 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	int symbol;
 	int list_height;
 	int active;
-	float search_height = 0;
 	int ret = 1;
+
+	// 2*minrowpadding which is 8 + win.spacing.y which is 4
+	int row_height = FONT_SIZE + 20;
+	// set to number of *fully visible* rows in the list_view
+	// ie clip.h or bounds.h / row_height
+	int full_rows;
 
 	struct nk_rect bounds;
 	const struct nk_input* in = &ctx->input;
@@ -423,7 +428,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	//win_flags |= NK_WINDOW_SCALABLE;
 
 	SDL_Event event = { .type = g->userevent };
-	SDL_Event scroll_event = { .wheel.type = SDL_MOUSEWHEEL, .wheel.direction = SDL_MOUSEWHEEL_NORMAL };
+	//SDL_Event scroll_event = { .wheel.type = SDL_MOUSEWHEEL, .wheel.direction = SDL_MOUSEWHEEL_NORMAL };
 
 
 	cvector_file* f = &fb->files;
@@ -454,7 +459,6 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			ret = 0;
 		}
 
-		search_height = nk_widget_bounds(ctx).h;
 		// Search field
 		// TODO
 		//nk_button_label(ctx, "Search");
@@ -702,7 +706,8 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			float ratios[] = { header_ratios[0]+0.01f, header_ratios[2], header_ratios[4]+0.01f };
 			
 			bounds = nk_widget_bounds(ctx);
-			nk_layout_row_dynamic(ctx, scr_h-bounds.y, 1);
+			// -4 for windows spacing.y
+			nk_layout_row_dynamic(ctx, scr_h-bounds.y-4, 1);
 
 			if (fb->is_search_results) {
 				if (!fb->search_results.size) {
@@ -744,10 +749,26 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 							nk_label(ctx, f->a[i].size_str, NK_TEXT_RIGHT);
 							nk_label(ctx, f->a[i].mod_str, NK_TEXT_RIGHT);
 						}
+						// These seem to be the same number used for the same
+						// purpose in different places in Nuklear
+						//list_height = ctx->current->layout->clip.h;
+						list_height = ctx->current->layout->bounds.h;
+						full_rows = list_height / row_height;
+
 						nk_list_view_end(&rview);
 					}
 				}
+				if (fb->list_setscroll) {
+					if (fb->selection < rview.begin) {
+						nk_group_set_scroll(ctx, "Result List", 0, fb->selection*row_height);
+					} else if (fb->selection >= rview.begin + full_rows) {
+						nk_group_set_scroll(ctx, "Result List", 0, (fb->selection-full_rows+1)*row_height);
+					}
+					fb->list_setscroll = FALSE;
+				}
+				/*
 				if (fb->list_setscroll && (fb->selection < rview.begin || fb->selection >= rview.end-2)) {
+					nk_window_set_focus(ctx, "Result List");
 					if (!fb->selection) {
 						nk_group_set_scroll(ctx, "Result List", 0, 0);
 					} else if (fb->selection == fb->search_results.size-1 && fb->selection-rview.begin >= rview.count) {
@@ -758,6 +779,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 					}
 					fb->list_setscroll = FALSE;
 				}
+				*/
 			} else {
 				if (nk_list_view_begin(ctx, &lview, "File List", NK_WINDOW_BORDER, FONT_SIZE+16, f->size)) {
 					// TODO ratio layout 0.5 0.2 0.3 ? give or take
@@ -782,20 +804,42 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 						nk_label(ctx, f->a[i].size_str, NK_TEXT_RIGHT);
 						nk_label(ctx, f->a[i].mod_str, NK_TEXT_RIGHT);
 					}
+
+					// These seem to be the same number
+					//list_height = ctx->current->layout->clip.h;
+					list_height = ctx->current->layout->bounds.h;
+					full_rows = list_height / row_height;
 					nk_list_view_end(&lview);
 				}
 
-				if (fb->list_setscroll && (fb->selection < lview.begin || fb->selection >= lview.end-2)) {
+				if (fb->list_setscroll) {
+					if (fb->selection < lview.begin) {
+						nk_group_set_scroll(ctx, "File List", 0, fb->selection*row_height);
+					} else if (fb->selection >= lview.begin + full_rows) {
+						nk_group_set_scroll(ctx, "File List", 0, (fb->selection-full_rows+1)*row_height);
+					}
+					fb->list_setscroll = FALSE;
+				}
+/*
+					nk_group_set_scroll(ctx, "File List", 0, y);
+
 					if (!fb->selection) {
 						nk_group_set_scroll(ctx, "File List", 0, 0);
 					} else if (fb->selection == f->size-1 && fb->selection-lview.begin >= lview.count) {
 						nk_group_set_scroll(ctx, "File List", 0, UINT32_MAX);
 					} else {
-						scroll_event.wheel.y = (fb->selection <= lview.begin) ? 1 : -1;
-						SDL_PushEvent(&scroll_event);
+						nk_uint y;
+						nk_group_get_scroll(ctx, "File List", NULL, &y);
+						// a scroll step does 0.1 * layout->bounds.h so that's what we do
+						y += (fb->selection <= lview.begin) ? -0.1 * list_height : 0.1 * list_height;
+						nk_group_set_scroll(ctx, "File List", 0, y);
+
+						//scroll_event.wheel.y = (fb->selection <= lview.begin) ? 1 : -1;
+						//SDL_PushEvent(&scroll_event);
 					}
 					fb->list_setscroll = FALSE;
 				}
+				*/
 			}
 			nk_group_end(ctx);
 		}
