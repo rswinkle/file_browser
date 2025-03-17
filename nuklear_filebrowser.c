@@ -401,8 +401,20 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	int active;
 	int ret = 1;
 
-	// 2*minrowpadding which is 8 + win.spacing.y which is 4
+	// This is the number you pass to nk_list_view_begin() for row height + 4 because
+	// it adds win.spacing.y to row height internally
+	//
+	// If you want the minimum/automatic height, ie you pass 0 to nk_layout_row for
+	// the list elements, the numbers will be font_size + 16 and font_size + 20 because
+	// the min row height is
+	// font_size + 2*min_row_height_padding so the list row height is
+	// font_size + 2*8 + 4 = font_size + 20
+	//
+	// If you want to make the rows larger, just make sure you pass the same number
+	// to nk_list_view_begin() and nk_layout_row() and this variable will still be that
+	// number + 4
 	int row_height = FONT_SIZE + 20;
+
 	// set to number of *fully visible* rows in the list_view
 	// ie clip.h or bounds.h / row_height
 	int full_rows;
