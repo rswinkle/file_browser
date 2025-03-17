@@ -1,5 +1,5 @@
 
-File Browser 0.80 MIT licensed library for browsing a file system
+File Browser 0.80.0 MIT licensed library for browsing a file system
 https://github.com/rswinkle/file_browser
 robertwinkler.com
 

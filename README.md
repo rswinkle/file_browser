@@ -21,5 +21,5 @@ with the SDL_renderer backend that showcases all the features.
 Gallery
 =======
 ![Nuklear demo](https://raw.githubusercontent.com/rswinkle/file_browser/main/media/Nuklear_filebrowser.png)
-![sphereworld](https://raw.githubusercontent.com/rswinkle/file_browser/main/media/terminal_filebrowser.png)
+![Terminal demo](https://raw.githubusercontent.com/rswinkle/file_browser/main/media/terminal_filebrowser.png)
 
