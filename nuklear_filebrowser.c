@@ -713,8 +713,6 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 						fb->is_search_results = FALSE;
 						fb->text_buf[0] = 0;
 						fb->text_len = 0;
-						fb->selection = -1;
-						fb->list_setscroll = TRUE;
 					}
 				} else {
 					if (nk_list_view_begin(ctx, &rview, "Result List", NK_WINDOW_BORDER, FONT_SIZE+16, fb->search_results.size)) {
