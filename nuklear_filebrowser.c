@@ -417,14 +417,15 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 	// set to number of *fully visible* rows in the list_view
 	// ie clip.h or bounds.h / row_height
-	int full_rows;
+	int full_rows = 0;
 
 	struct nk_rect bounds;
 	const struct nk_input* in = &ctx->input;
 
 	static struct nk_list_view lview, rview;
-	static float header_ratios[] = {0.49f, 0.01f, 0.15f, 0.01f, 0.34f };
 	static int splitter_down = 0;
+	static float header_ratios[] = {0.49f, 0.01f, 0.15f, 0.01f, 0.34f };
+	char dir_buf[STRBUF_SZ];
 
 	// TODO "Open Directory", "Open Folder"?
 	const char* open_strs[] = { "Open", "Open Dir" };
@@ -451,6 +452,10 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 	if (!nk_input_is_mouse_down(in, NK_BUTTON_LEFT))
 		splitter_down = 0;
 
+	// why + 2 to reach the edges?
+	// TODO only needed for software rendering, maybe an SDL bug?
+	// if it were Nuklear bug it always draws the backing rectangle assuming
+	// there will be a border (border is 2 pix wide by default)
 	if (nk_begin(ctx, "File Selector", nk_rect(0, 0, scr_w, scr_h), win_flags)) {
 
 		struct nk_rect win_content_rect = nk_window_get_content_region(ctx);
@@ -460,9 +465,9 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 		//printf("scr_w,scr_h = %d, %d\n%f %f\n", scr_w, scr_h, win_content_rect.w, win_content_rect.h);
 
 		nk_layout_row_template_begin(ctx, 0);
-		nk_layout_row_template_push_static(ctx, 100);
+		nk_layout_row_template_push_static(ctx, 150);
 		nk_layout_row_template_push_dynamic(ctx);
-		nk_layout_row_template_push_static(ctx, 100);
+		nk_layout_row_template_push_static(ctx, 150);
 		nk_layout_row_template_end(ctx);
 		if (nk_button_label(ctx, "Cancel")) {
 			// TODO maybe just have a done flag in file browser?
@@ -490,10 +495,11 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			nk_widget_disable_begin(ctx);
 		}
 		if (nk_button_label(ctx, open_strs[fb->select_dir])) {
-			if (f->a[fb->selection].size == -1 && !fb->select_dir) {
-				switch_dir(fb, f->a[fb->selection].path);
+			int sel = (fb->is_search_results) ? fb->search_results.a[fb->selection] : fb->selection;
+			if (f->a[sel].size == -1 && !fb->select_dir) {
+				switch_dir(fb, f->a[sel].path);
 			} else {
-				strncpy(fb->file, f->a[fb->selection].path, MAX_PATH_LEN);
+				strncpy(fb->file, f->a[sel].path, MAX_PATH_LEN);
 				ret = 0;
 			}
 		}
@@ -502,30 +508,52 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 		//int path_rows = 1; // default 1 for text path
 		// don't show path if recents or in root directory "/"
 		if (!fb->is_recents && fb->dir[1]) {
+			strncpy(dir_buf, fb->dir, sizeof(dir_buf));
 			// method 1
 			// breadcrumb buttons
+			// I really hate Windows.
+			// TODO Come up with a better way/compromise between visuals
+			// and code
+			// TODO use a horizontally scrolling group instead of multiple lines of buttons
 			if (!fb->is_text_path) {
-				int depth = 0; // number of breadcrumb buttons;
-
 				ctx->style.window.spacing.x = 0;
-				char *d = fb->dir;
+
+				char *d = dir_buf;
+#ifndef _WIN32
 				char *begin = d + 1;
+#else
+				char *begin = d;
+#endif
 				char tmp;
 				nk_layout_row_dynamic(ctx, 0, 6);
 				while (*d++) {
 					tmp = *d;
-					if (tmp == '/' || !tmp) {
+					if (tmp == '/' || (!tmp && begin != d)) {
+#ifndef _WIN32
 						*d = '\0';
+#else
+						char tmp2 = 0;
+						if (d != &begin[2]) {
+							*d = '\0';
+							tmp2 = 0;
+						} else {
+							tmp2 = begin[3];
+							begin[3] = '\0';
+						}
+#endif
 						if (nk_button_label(ctx, begin)) {
-							switch_dir(fb, NULL);
+							switch_dir(fb, dir_buf);
 							break;
 						}
-						depth++;
 						if (tmp) *d = '/';
+
+#ifdef _WIN32
+						if (tmp2) begin[3] = tmp2;
+#endif
+
 						begin = d + 1;
 					}
 				}
-				//path_rows = depth/6 + 1;
 				ctx->style.window.spacing.x = win_spacing.x;
 			} else {
 
@@ -533,10 +561,10 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 				// method 2
 				// TODO how to make this look like method 3, submit issue/documentation
+				// win_content_rect.w already subtracted 2*win.padding.y
 				path_szs[0] = win_content_rect.w-win_spacing.x-UP_WIDTH;
 				nk_layout_row(ctx, NK_STATIC, 0, 2, path_szs);
 
-				
 				// method 3
 				/*
 				nk_layout_row_template_begin(ctx, 0);
@@ -544,17 +572,33 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 				nk_layout_row_template_push_static(ctx, 100);
 				nk_layout_row_template_end(ctx);
 				*/
-				
+
 				int dir_len = strlen(fb->dir);
 				nk_edit_string(ctx, text_path_flags, fb->dir, &dir_len, MAX_PATH_LEN, nk_filter_default);
 
 
 				if (nk_button_label(ctx, "Up")) {
-					char* s = strrchr(fb->dir, '/');
-					if (s != fb->dir) {
+					char* s = strrchr(dir_buf, '/');
+					assert(s); // should never be NULL since "/" or "C:/"
+#ifndef _WIN32
+					if (s != dir_buf) {
 						*s = 0;
-						switch_dir(fb, NULL);
-					} else {
+						switch_dir(fb, dir_buf);
+					}
+#else
+					if (s[1]) {
+						// Don't want to turn "C:/" into "C:" since that isn't actually a proper path
+						// ie opendir() fails on "C:"
+						if (s == &dir_buf[2]) {
+							s[1] = 0;
+						} else {
+							*s = 0;
+						}
+						switch_dir(fb, dir_buf);
+					}
+#endif
+					// stupid windows make my braces ugly but at least this way doesn't break code folding
+					else {
 						switch_dir(fb, "/");
 					}
 				}
@@ -566,7 +610,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 		bounds = nk_widget_bounds(ctx);
 		nk_layout_row(ctx, NK_STATIC, scr_h-bounds.y, 2, group_szs);
 
-		if (nk_group_begin(ctx, "Sidebar", 0)) {
+		if (nk_group_begin(ctx, "Sidebar", NK_WINDOW_NO_SCROLLBAR)) {
 
 			// Make dynamic array to add saved bookmarked locations
 			nk_layout_row_dynamic(ctx, 0, 1);
@@ -614,6 +658,13 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			if (nk_button_label(ctx, "Computer")) {
 				switch_dir(fb, "/");
 			}
+
+			/*
+			// If I wanted user bookmarks indistinguishable from built in
+			// but then I'd need to make either the whole sidebar scrollable or
+			// put a group around all bookmarks and make that scrollable
+			// better to just separate the user bookmarks below and have that be
+			// scrollable
 			char** bmarks = g->bookmarks.a;
 			for (int i=0; i<g->bookmarks.size; ++i) {
 				char* b = bmarks[i];
@@ -630,11 +681,53 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 					switch_dir(fb, b);
 				}
 			}
+			*/
+
 			if (nk_button_label(ctx, "Add to Bookmarks")) {
 				cvec_push_str(&g->bookmarks, fb->dir);
 			}
 
 
+			bounds = nk_widget_bounds(ctx);
+
+			// TODO spacing.x*2? or spacing.x+padding.x?  = 8 either way
+			nk_layout_row_static(ctx, scr_h-bounds.y, SIDEBAR_W-win_spacing.x*2, 1);
+			//nk_layout_row_static(ctx, scr_h-bounds.y, g->gui_sidebar_w-win_spacing.x*2, 1);
+			if (nk_group_begin(ctx, "User Bookmarks", 0)) {
+				nk_layout_row_dynamic(ctx, 0, 1);
+				char** bmarks = g->bookmarks.a;
+				int remove = -1;
+				for (int i=0; i<g->bookmarks.size; ++i) {
+					char* b = bmarks[i];
+					char* name = strrchr(b, '/');
+
+					// handle Windows "C:/" correctly
+					if (name == &b[2] && b[1] == ':') {
+						name = &b[0];
+					}
+					if (name != b) {
+						name++;
+					}
+					bounds = nk_widget_bounds(ctx);
+					if (nk_button_label(ctx, name)) {
+						switch_dir(fb, b);
+					}
+					if (nk_contextual_begin(ctx, 0, nk_vec2(100, 300), bounds)) {
+
+						nk_layout_row_dynamic(ctx, 25, 1);
+						if (nk_menu_item_label(ctx, "Remove", NK_TEXT_LEFT)) {
+							remove = i;
+						}
+
+						//nk_slider_int(ctx, 0, &slider, 16, 1);
+						nk_contextual_end(ctx);
+					}
+				}
+				if (remove >= 0) {
+					cvec_erase_str(&g->bookmarks, remove, remove);
+				}
+				nk_group_end(ctx);
+			}
 			nk_group_end(ctx);
 		}
 
@@ -714,7 +807,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 			}
 
 			float ratios[] = { header_ratios[0]+0.01f, header_ratios[2], header_ratios[4]+0.01f };
-			
+
 			bounds = nk_widget_bounds(ctx);
 			// -4 for windows spacing.y
 			nk_layout_row_dynamic(ctx, scr_h-bounds.y-4, 1);
@@ -805,7 +898,6 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 					full_rows = list_height / row_height;
 					nk_list_view_end(&lview);
 				}
-
 				if (fb->list_setscroll) {
 					if (fb->selection < lview.begin) {
 						nk_group_set_scroll(ctx, "File List", 0, fb->selection*row_height);
