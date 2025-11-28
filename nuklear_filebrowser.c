@@ -578,7 +578,7 @@ int do_filebrowser(file_browser* fb, struct nk_context* ctx, int scr_w, int scr_
 
 
 				if (nk_button_label(ctx, "Up")) {
-					char* s = strrchr(dir_buf, '/');
+					char* s = (char*)strrchr(dir_buf, '/');
 					assert(s); // should never be NULL since "/" or "C:/"
 #ifndef _WIN32
 					if (s != dir_buf) {
@@ -954,7 +954,7 @@ char* uri_decode(const char* str)
 			dst[j++] = str[i];
 		}
 	}
-	dst = realloc(dst, j+1);
+	dst = (char*)realloc(dst, j+1);
 	dst[j] = 0;
 
 	return dst;

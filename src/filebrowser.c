@@ -277,7 +277,10 @@ void fb_sort_toggle(file_browser* fb, int sort_type)
 	}
 	// Don't really need to convert it to 1 or 0 but just to clarify that I'm using
 	// it as a bool
-	fb->list_setscroll = !!save;
+	// NOTE: decided I don't like the jumping, so keep the selection but stay in relative
+	// position. User just has to arrow up or down and it will jump to the selection if
+	// it's offscreen
+	//fb->list_setscroll = !!save;
 }
 
 void fb_search_filenames(file_browser* fb)
@@ -398,7 +401,7 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 		}
 
 		tmp = myrealpath(fullpath, NULL);
-		f.path = realloc(tmp, strlen(tmp)+1);
+		f.path = (char*)realloc(tmp, strlen(tmp)+1);
 #ifdef _WIN32
 		normalize_path(f.path);
 #endif
@@ -433,7 +436,7 @@ char* mydirname(const char* path, char* dirpath)
 
 	// TODO doesn't correctly handle "/" "/hello" or anything that ends in a '/' like
 	// "/some/random/dir/"
-	char* last_slash = strrchr(path, PATH_SEPARATOR);
+	char* last_slash = strrchr((char*)path, PATH_SEPARATOR);
 	if (last_slash) {
 		strncpy(dirpath, path, last_slash-path);
 		dirpath[last_slash-path] = 0;
@@ -494,9 +497,8 @@ int bytes2str(int bytes, char* buf, int len)
 
 	// MiB KiB? 2^10, 2^20?
 	// char* iec_sizes[3] = { "bytes", "KiB", "MiB" };
-	char* si_sizes[3] = { "bytes", "KB", "MB" }; // GB?  no way
+	const char* si_sizes[3] = { "bytes", "KB", "MB" }; // GB?  no way
 
-	char** sizes = si_sizes;
 	int i = 0;
 	double sz = bytes;
 	if (sz >= 1000000) {
@@ -509,7 +511,7 @@ int bytes2str(int bytes, char* buf, int len)
 		i = 0;
 	}
 
-	int ret = snprintf(buf, len, ((i) ? "%.1f %s" : "%.0f %s") , sz, sizes[i]);
+	int ret = snprintf(buf, len, ((i) ? "%.1f %s" : "%.0f %s") , sz, si_sizes[i]);
 	if (ret >= len)
 		return 0;
 

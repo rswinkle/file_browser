@@ -10,9 +10,9 @@ CFLAGS:=-Isrc -lm
 
 ALL: nuklear_fb terminal_fb
 
-nuklear_fb: nuklear_filebrowser.c
+nuklear_fb: nuklear_filebrowser.c file_browser.h
 	$(CC) $(OPTS) nuklear_filebrowser.c -o $@ $(CFLAGS) `pkg-config sdl2 --cflags --libs`
-terminal_fb: terminal_filebrowser.c
+terminal_fb: terminal_filebrowser.c file_browser.h
 	$(CC) $(OPTS) terminal_filebrowser.c src/c_utils.c -o $@ $(CFLAGS)
 
 clean:
