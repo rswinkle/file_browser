@@ -1,6 +1,6 @@
 {
   "name": "file_browser",
-  "version": "0.80.1",
+  "version": "0.80.2",
   "repo": "rswinkle/file_browser",
   "description": "single-header cross-platform file browsing for any UI system",
   "keywords": [

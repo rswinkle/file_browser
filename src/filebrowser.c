@@ -216,7 +216,7 @@ void handle_recents(file_browser* fb)
 	qsort(fb->files.a, fb->files.size, sizeof(file), fb->c_func);
 	fb->list_setscroll = TRUE;
 
-	FB_LOG("Found %"PRIcv_sz" recent files\n", fb->files.size);
+	FB_LOG("Found %" PRIcv_sz " recent files\n", fb->files.size);
 
 	cvec_free_str(&recents);
 }
@@ -417,7 +417,7 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 		cvec_push_file(files, &f);
 	}
 
-	FB_LOG("Found %"PRIcv_sz" files in %s\n", files->size, dirpath);
+	FB_LOG("Found %" PRIcv_sz " files in %s\n", files->size, dirpath);
 
 	closedir(dir);
 	return 1;
