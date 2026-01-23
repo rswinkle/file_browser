@@ -1,6 +1,6 @@
 /*
 
-File Browser 0.80.2 MIT licensed library for browsing a file system
+File Browser 0.80.3 MIT licensed library for browsing a file system
 https://github.com/rswinkle/file_browser
 robertwinkler.com
 
@@ -127,6 +127,8 @@ typedef int64_t i64;
 #define CVEC_SZ
 typedef CVEC_SIZE_T cvec_sz;
 #endif
+
+#define FB_UNUSED(X) (void)X
 
 #ifdef __cplusplus
 extern "C" {
@@ -1354,7 +1356,6 @@ char* mydirname(const char* path, char* dirpath);
 char* mybasename(const char* path, char* base);
 void normalize_path(char* path);
 int bytes2str(int bytes, char* buf, int len);
-
 
 #endif
 
@@ -3646,14 +3647,13 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 	memset(browser, 0, sizeof(file_browser));
 	
 	const char* home = get_homedir();
-
-	size_t l = 0;
 	strncpy(browser->home, home, MAX_PATH_LEN);
 #ifdef _WIN32
 	normalize_path(browser->home);
 #endif
 	browser->home[MAX_PATH_LEN - 1] = 0;
 
+	size_t l = 0;
 	home = browser->home;
 	const char* sd = home;
 	if (start_dir) {
@@ -3702,12 +3702,12 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 void reset_file_browser(file_browser* fb, char* start_dir)
 {
 	assert(fb->home[0]);
-	assert(fb->dir[0]);
 	assert(fb->desktop[0]);
 	assert(fb->files.elem_free == free_file);
 
 	// clear vectors and prior selection
 	fb->is_search_results = FALSE;
+	fb->is_recents = FALSE;
 	fb->select_dir = FALSE;
 	fb->file[0] = 0;
 	fb->text_len = 0;
@@ -3718,7 +3718,7 @@ void reset_file_browser(file_browser* fb, char* start_dir)
 
 	// set start dir
 	size_t l = 0;
-	const char* sd = fb->dir;
+	const char* sd = fb->home;
 	if (start_dir) {
 		struct stat file_stat;
 		if (stat(start_dir, &file_stat)) {
@@ -3733,6 +3733,7 @@ void reset_file_browser(file_browser* fb, char* start_dir)
 			l = strlen(start_dir);
 		}
 	}
+	snprintf(fb->dir, MAX_PATH_LEN, "%s", sd);
 	// cut off trailing '/'
 	if (l > 1 && sd[l-1] == '/') {
 		fb->dir[l-1] = 0;
@@ -3787,6 +3788,9 @@ void handle_recents(file_browser* fb)
 					//free(p);
 					continue;
 				}
+			} else {
+				// skip folders and files without extensions?
+				//continue;
 			}
 		}
 		if (stat(p, &file_stat)) {
@@ -3804,6 +3808,12 @@ void handle_recents(file_browser* fb)
 
 			sep = strrchr(f.path, PATH_SEPARATOR); // TODO test on windows but I think I normalize
 			f.name = (sep) ? sep+1 : f.path;
+
+			// skip "/" for now
+			if (f.name[0] == '\0') {
+				// f.name == p; // if we want to keep it
+				continue;
+			}
 
 			cvec_pushm_file(&fb->files, &f);
 
