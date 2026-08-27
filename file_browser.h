@@ -1,6 +1,6 @@
 /*
 
-File Browser 0.80.3 MIT licensed library for browsing a file system
+File Browser 0.81.0 MIT licensed library for browsing a file system
 https://github.com/rswinkle/file_browser
 robertwinkler.com
 
@@ -17,7 +17,7 @@ For now see the two example programs in the github repo
 
 The MIT License (MIT)
 
-Copyright (c) 2017-2025 Robert Winkler
+Copyright (c) 2017-2026 Robert Winkler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -1273,6 +1273,10 @@ int filemodified_cmp_gt(const void* a, const void* b);
 #define FILE_TYPE_STR "Match Exts"
 #endif
 
+#ifndef FILE_TYPE_BUF_SZ
+#define FILE_TYPE_BUF_SZ 32
+#endif
+
 #define TRUE 1
 #define FALSE 0
 
@@ -1298,10 +1302,13 @@ typedef struct file_browser
 	// special bookmarked locations
 	char home[MAX_PATH_LEN];
 	char desktop[MAX_PATH_LEN];
+	char cwd[MAX_PATH_LEN];
 
 	// searching
 	char text_buf[STRBUF_SZ];
 	int text_len;
+
+	char file_type_label[FILE_TYPE_BUF_SZ];
 
 	recents_func get_recents;
 	void* userdata;
@@ -1338,9 +1345,17 @@ typedef struct file_browser
 } file_browser;
 
 int init_file_browser(file_browser* browser, const char** exts, int num_exts, const char* start_dir, recents_func r_func, void* userdata);
+void reset_file_browser(file_browser* fb, const char** exts, int num_exts, const char* start_dir, const char* filetype_label);
 void free_file_browser(file_browser* fb);
 void switch_dir(file_browser* fb, const char* dir);
 void handle_recents(file_browser* fb);
+int set_filetype_label(file_browser* fb, const char* label);
+
+#ifndef _WIN32
+// Add filepath to $XDG_DATA_HOME/recently-used.xbel (freedesktop recents).
+// mime NULL → application/octet-stream. Returns 1 on success or already-present, 0 on failure.
+int linux_add_to_recents(const char* filepath, const char* app_name, const char* app_exec, const char* mime);
+#endif
 
 void fb_search_filenames(file_browser* fb);
 
@@ -3641,7 +3656,6 @@ const char* get_homedir(void)
 	return home;
 }
 
-// TODO pass extensions?
 int init_file_browser(file_browser* browser, const char** exts, int num_exts, const char* start_dir, recents_func r_func, void* userdata)
 {
 	memset(browser, 0, sizeof(file_browser));
@@ -3678,7 +3692,17 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 	l = strlen(browser->desktop);
 	strcpy(browser->desktop + l, "/Desktop");
 
+	if (!getcwd(browser->cwd, MAX_PATH_LEN)) {
+		FB_LOG("CWD path is too long! setting to home: %s\n", browser->home);
+		strcpy(browser->cwd, browser->home);
+		//return 0;
+	}
+	normalize_path(browser->cwd);
+
 	browser->files.elem_free = free_file;
+
+	// TODO log if too long
+	set_filetype_label(browser, FILE_TYPE_STR);
 
 #ifdef FILE_LIST_SZ
 	browser->end = FILE_LIST_SZ;
@@ -3688,6 +3712,7 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 	browser->num_exts = num_exts;
 
 	fb_scandir(&browser->files, browser->dir, exts, num_exts, 0, 0);
+	browser->selection = (browser->files.size) ? 0 : -1;
 
 	qsort(browser->files.a, browser->files.size, sizeof(file), filename_cmp_lt);
 	browser->sorted_state = FB_NAME_UP;
@@ -3699,7 +3724,7 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 	return 1;
 }
 
-void reset_file_browser(file_browser* fb, char* start_dir)
+void reset_file_browser(file_browser* fb, const char** exts, int num_exts, const char* start_dir, const char* filetype_label)
 {
 	assert(fb->home[0]);
 	assert(fb->desktop[0]);
@@ -3709,12 +3734,14 @@ void reset_file_browser(file_browser* fb, char* start_dir)
 	fb->is_search_results = FALSE;
 	fb->is_recents = FALSE;
 	fb->select_dir = FALSE;
-	fb->file[0] = 0;
 	fb->text_len = 0;
 	fb->text_buf[0] = 0;
+	fb->file[0] = 0;
 
 	// TODO do we want to keep the old value?  I feel like not
 	fb->ignore_exts = FALSE;
+
+	char tmp_buf[MAX_PATH_LEN];
 
 	// set start dir
 	size_t l = 0;
@@ -3732,6 +3759,9 @@ void reset_file_browser(file_browser* fb, char* start_dir)
 			snprintf(fb->dir, MAX_PATH_LEN, "%s", sd);
 			l = strlen(start_dir);
 		}
+	} else if (fb->dir[0]) {
+		snprintf(tmp_buf, MAX_PATH_LEN, "%s", fb->dir);
+		sd = tmp_buf;
 	}
 	snprintf(fb->dir, MAX_PATH_LEN, "%s", sd);
 	// cut off trailing '/'
@@ -3739,8 +3769,17 @@ void reset_file_browser(file_browser* fb, char* start_dir)
 		fb->dir[l-1] = 0;
 	}
 
+	if (filetype_label) {
+		set_filetype_label(fb, filetype_label);
+	}
+
+	// TODO keep old ones if they pass NULL for exts?
+	fb->exts = exts;
+	fb->num_exts = num_exts;
+
 	// scan and sort
 	fb_scandir(&fb->files, fb->dir, fb->exts, fb->num_exts, fb->show_hidden, fb->select_dir);
+	fb->selection = (fb->files.size) ? 0 : -1;
 
 	qsort(fb->files.a, fb->files.size, sizeof(file), filename_cmp_lt);
 	fb->sorted_state = FB_NAME_UP;
@@ -3830,6 +3869,12 @@ void handle_recents(file_browser* fb)
 
 	cvec_free_str(&recents);
 }
+
+int set_filetype_label(file_browser* fb, const char* label)
+{
+	return snprintf(fb->file_type_label, FILE_TYPE_BUF_SZ, "%s", label) < FILE_TYPE_BUF_SZ;
+}
+
 
 // toggles search state on sort_type, if it's not sorted that way ascending
 // it does that, otherwise in does descending
@@ -4038,23 +4083,45 @@ int fb_scandir(cvector_file* files, const char* dirpath, const char** exts, int 
 // enough, return value is dirpath
 char* mydirname(const char* path, char* dirpath)
 {
+	int i;
+
 	if (!path || !path[0]) {
 		dirpath[0] = '.';
 		dirpath[1] = 0;
 		return dirpath;
 	}
 
-	// TODO doesn't correctly handle "/" "/hello" or anything that ends in a '/' like
-	// "/some/random/dir/"
-	char* last_slash = strrchr((char*)path, PATH_SEPARATOR);
-	if (last_slash) {
-		strncpy(dirpath, path, last_slash-path);
-		dirpath[last_slash-path] = 0;
-	} else {
-		dirpath[0] = '.';
-		dirpath[1] = 0;
+	i = (int)strlen(path) - 1;
+
+	// Strip trailing slashes. All-slashes path is the root.
+	for (; path[i] == PATH_SEPARATOR; i--) {
+		if (!i) {
+			dirpath[0] = PATH_SEPARATOR;
+			dirpath[1] = 0;
+			return dirpath;
+		}
 	}
 
+	// Strip the last component.
+	for (; path[i] != PATH_SEPARATOR; i--) {
+		if (!i) {
+			dirpath[0] = '.';
+			dirpath[1] = 0;
+			return dirpath;
+		}
+	}
+
+	// Strip trailing slashes of the remaining dirname.
+	for (; path[i] == PATH_SEPARATOR; i--) {
+		if (!i) {
+			dirpath[0] = PATH_SEPARATOR;
+			dirpath[1] = 0;
+			return dirpath;
+		}
+	}
+
+	memcpy(dirpath, path, i + 1);
+	dirpath[i + 1] = 0;
 	return dirpath;
 }
 
@@ -4062,26 +4129,34 @@ char* mydirname(const char* path, char* dirpath)
 // buffer
 char* mybasename(const char* path, char* base)
 {
+	int start, end;
+
 	if (!path || !path[0]) {
 		base[0] = '.';
 		base[1] = 0;
 		return base;
 	}
 
-	int end = strlen(path) - 1;
-
-	if (path[end] == PATH_SEPARATOR)
+	end = (int)strlen(path) - 1;
+	while (end > 0 && path[end] == PATH_SEPARATOR) {
 		end--;
+	}
+	if (end == 0 && path[0] == PATH_SEPARATOR) {
+		base[0] = PATH_SEPARATOR;
+		base[1] = 0;
+		return base;
+	}
 
-	int start = end;
-	while (path[start] != PATH_SEPARATOR && start != 0)
+	start = end;
+	while (start > 0 && path[start] != PATH_SEPARATOR) {
 		start--;
-	if (path[start] == PATH_SEPARATOR)
+	}
+	if (path[start] == PATH_SEPARATOR) {
 		start++;
+	}
 
-	memcpy(base, &path[start], end-start+1);
-	base[end-start+1] = 0;
-
+	memcpy(base, &path[start], end - start + 1);
+	base[end - start + 1] = 0;
 	return base;
 }
 
@@ -4184,5 +4259,8 @@ void switch_dir(file_browser* fb, const char* dir)
 	fb->begin = 0;
 #endif
 }
+
+
+
 #undef FILE_BROWSER_IMPLEMENTATION
 #endif
