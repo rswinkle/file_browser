@@ -86,7 +86,7 @@ int print_browser(file_browser* fb)
 
 	int invalid = 0;
 
-	for (int i=fb->begin, j=0; i<fb->end; i++, j++) {
+	for (int i=fb->begin, j=0; i<fb->end && i<f->size; i++, j++) {
 		printf("%2d %-40s%20s%30s\n", j, f->a[i].name, f->a[i].size_str, f->a[i].mod_str);
 	}
 
@@ -107,7 +107,7 @@ int print_browser(file_browser* fb)
 			
 			// TODO properly
 			freadstring_into_str(stdin, '\n', line_buf, STRBUF_SZ);
-		} while (sscanf(line_buf, "%d", &fn) != 1 || fn < 0 || fn >= fb->end - fb->begin);
+		} while (sscanf(line_buf, "%d", &fn) != 1 || fn < 0 || fn >= fb->end - fb->begin || fn >= f->size);
 
 		int idx = fb->begin + fn;
 		printf("fn = %d, idx = %d\n", fn, idx);

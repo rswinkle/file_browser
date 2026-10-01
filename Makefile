@@ -16,4 +16,4 @@ terminal_fb: terminal_filebrowser.c file_browser.h
 	$(CC) $(OPTS) terminal_filebrowser.c src/c_utils.c -o $@ $(CFLAGS)
 
 clean:
-	rm *.o terminal_fb nuklear_fb
+	rm -f *.o terminal_fb nuklear_fb
