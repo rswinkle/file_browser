@@ -1,6 +1,6 @@
 /*
 
-File Browser 0.81.0 MIT licensed library for browsing a file system
+File Browser 0.81.1 MIT licensed library for browsing a file system
 https://github.com/rswinkle/file_browser
 robertwinkler.com
 
@@ -3704,15 +3704,15 @@ int init_file_browser(file_browser* browser, const char** exts, int num_exts, co
 	// TODO log if too long
 	set_filetype_label(browser, FILE_TYPE_STR);
 
-#ifdef FILE_LIST_SZ
-	browser->end = FILE_LIST_SZ;
-#endif
-
 	browser->exts = exts;
 	browser->num_exts = num_exts;
 
 	fb_scandir(&browser->files, browser->dir, exts, num_exts, 0, 0);
 	browser->selection = (browser->files.size) ? 0 : -1;
+
+#ifdef FILE_LIST_SZ
+	browser->end = (FILE_LIST_SZ <= browser->files.size) ? FILE_LIST_SZ : browser->files.size;
+#endif
 
 	qsort(browser->files.a, browser->files.size, sizeof(file), filename_cmp_lt);
 	browser->sorted_state = FB_NAME_UP;
